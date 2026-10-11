@@ -1,9 +1,14 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ListingOutput } from "@/lib/listing-schema";
-import { ListingGenerationError, mapApiError, parseModelResponse, sanitizeListing } from "@/lib/server/claude";
-
-type Response = Parameters<typeof parseModelResponse>[0];
+import type { ListingInput, ListingOutput } from "@/lib/listing-schema";
+import {
+  generateListing,
+  GroqApiError,
+  ListingGenerationError,
+  mapApiError,
+  parseModelResponse,
+  sanitizeListing,
+  type ChatCompletion,
+} from "@/lib/server/groq";
 
 const VALID: ListingOutput = {
   title: "Brown Leather Crossbody Bag",
@@ -13,8 +18,8 @@ const VALID: ListingOutput = {
   missing_details: ["Укажите размеры сумки."],
 };
 
-function textResponse(text: string, stop_reason: Response["stop_reason"] = "end_turn"): Response {
-  return { stop_reason, content: [{ type: "text", text, citations: null }] } as Response;
+function textResponse(content: string | null, finish_reason = "stop", refusal: string | null = null): ChatCompletion {
+  return { choices: [{ finish_reason, message: { content, refusal } }] };
 }
 
 function expectGenerationError(fn: () => unknown, code: string) {
@@ -45,22 +50,18 @@ describe("parseModelResponse", () => {
     );
   });
 
-  it("обрабатывает отказ модели и обрезанный ответ", () => {
-    const refused = expectGenerationError(() => parseModelResponse(textResponse("", "refusal")), "ai_refused");
+  it("обрабатывает отказ модели, обрезанный и пустой ответ", () => {
+    const refused = expectGenerationError(() => parseModelResponse(textResponse(null, "stop", "I can't help")), "ai_refused");
     expect(refused.refundable).toBe(false);
-    expectGenerationError(() => parseModelResponse(textResponse('{"title":', "max_tokens")), "ai_invalid_output");
+    expectGenerationError(() => parseModelResponse(textResponse("", "content_filter")), "ai_refused");
+    expectGenerationError(() => parseModelResponse(textResponse('{"title":', "length")), "ai_invalid_output");
+    expectGenerationError(() => parseModelResponse(textResponse(null)), "ai_invalid_output");
+    expectGenerationError(() => parseModelResponse({ choices: [] }), "ai_invalid_output");
   });
 
-  it("при серверном fallback берёт только ответ последней модели", () => {
-    const response = {
-      stop_reason: "end_turn",
-      content: [
-        { type: "text", text: '{"title":"partial', citations: null },
-        { type: "fallback", from: { model: "claude-opus-5-5" }, to: { model: "claude-sonnet-5-5" } },
-        { type: "text", text: JSON.stringify(VALID), citations: null },
-      ],
-    } as unknown as Response;
-    expect(parseModelResponse(response)).toEqual(VALID);
+  it("убирает блок рассуждений и обёртку ```json", () => {
+    const text = "<think>reasoning</think>\n```json\n" + JSON.stringify(VALID) + "\n```";
+    expect(parseModelResponse(textResponse(text))).toEqual(VALID);
   });
 
   it("неизвестный источник характеристики считает «photo», а не отбрасывает ответ", () => {
@@ -112,25 +113,29 @@ describe("mapApiError", () => {
     vi.restoreAllMocks();
   });
 
-  const apiError = (status: number, type: string, message = "error") =>
-    Anthropic.APIError.generate(status, { type: "error", error: { type, message } }, message, new Headers());
+  const apiError = (status: number, message = "error", code?: string) =>
+    new GroqApiError(status, "invalid_request_error", code, message);
 
   const cases: [string, unknown, string, number, boolean][] = [
-    ["401", apiError(401, "authentication_error"), "invalid_api_key", 503, true],
-    ["403", apiError(403, "permission_error"), "invalid_api_key", 503, true],
-    ["404", apiError(404, "not_found_error"), "model_not_found", 503, true],
-    ["429", apiError(429, "rate_limit_error"), "ai_overloaded", 503, true],
-    ["529", apiError(529, "overloaded_error"), "ai_overloaded", 503, true],
-    ["500", apiError(500, "api_error"), "ai_overloaded", 503, false],
-    ["400 image", apiError(400, "invalid_request_error", "Could not process image"), "image_invalid", 400, true],
-    ["400 other", apiError(400, "invalid_request_error", "messages: bad"), "ai_error", 502, true],
-    ["timeout", new Anthropic.APIConnectionTimeoutError(), "ai_timeout", 504, false],
-    ["connection", new Anthropic.APIConnectionError({ message: "ECONNRESET" }), "ai_error", 502, false],
-    ["unknown", new TypeError("boom"), "ai_error", 502, false],
+    ["401", apiError(401, "Invalid API Key", "invalid_api_key"), "invalid_api_key", 503, true],
+    ["403", apiError(403), "invalid_api_key", 503, true],
+    ["404", apiError(404, "model does not exist", "model_not_found"), "model_not_found", 503, true],
+    ["400 decommissioned", apiError(400, "model decommissioned", "model_decommissioned"), "model_not_found", 503, true],
+    ["429", apiError(429, "Rate limit reached"), "ai_overloaded", 503, true],
+    ["498", apiError(498), "ai_overloaded", 503, true],
+    ["503", apiError(503), "ai_overloaded", 503, true],
+    ["500", apiError(500), "ai_overloaded", 503, true],
+    ["413", apiError(413), "image_invalid", 400, true],
+    ["400 json", apiError(400, "Failed to generate JSON", "json_validate_failed"), "ai_invalid_output", 502, false],
+    ["422", apiError(422), "ai_invalid_output", 502, false],
+    ["400 image", apiError(400, "Could not process image"), "image_invalid", 400, true],
+    ["400 other", apiError(400, "messages: bad"), "ai_error", 502, true],
+    ["timeout", new DOMException("The operation timed out.", "TimeoutError"), "ai_timeout", 504, false],
+    ["connection", new TypeError("fetch failed"), "ai_error", 502, false],
   ];
 
   it.each(cases)("%s → правильный код, статус и возврат попытки", (_name, error, code, status, refundable) => {
-    const mapped = mapApiError(error, "claude-opus-5-5");
+    const mapped = mapApiError(error, "qwen/qwen3.8-27b");
     expect(mapped.code).toBe(code);
     expect(mapped.httpStatus).toBe(status);
     expect(mapped.refundable).toBe(refundable);
@@ -141,16 +146,80 @@ describe("mapApiError", () => {
     vi.stubEnv("NODE_ENV", "production");
     try {
       for (const error of [
-        apiError(401, "authentication_error"),
-        apiError(404, "not_found_error"),
-        apiError(400, "invalid_request_error", "Your credit balance is too low"),
-        apiError(400, "invalid_request_error", "messages: bad"),
+        apiError(401),
+        apiError(404, "model does not exist", "model_not_found"),
+        apiError(400, "messages: bad"),
       ]) {
-        const message = mapApiError(error, "claude-opus-5-5").userMessage;
-        expect(message).not.toMatch(/ANTHROPIC_|Anthropic Console|аккаунт/);
+        const message = mapApiError(error, "qwen/qwen3.8-27b").userMessage;
+        expect(message).not.toMatch(/GROQ_|Groq|аккаунт|qwen/);
       }
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe("generateListing", () => {
+  const INPUT: ListingInput = {
+    market: "ru",
+    productName: "Сумка",
+    brand: "",
+    condition: "",
+    dimensions: "",
+    color: "",
+    material: "",
+    details: "",
+  };
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubEnv("GROQ_API_KEY", "test-key-not-real");
+    vi.stubEnv("GROQ_MODEL", "");
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("отправляет в Groq модель, схему ответа и фото; ключ — только в заголовке", async () => {
+    fetchMock.mockResolvedValue(Response.json(textResponse(JSON.stringify(VALID))));
+    const result = await generateListing(INPUT, { mediaType: "image/png", base64: "AAAA" });
+    expect(result).toEqual(VALID);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.groq.com/openai/v1/chat/completions");
+    expect(new Headers(init?.headers).get("authorization")).toBe("Bearer test-key-not-real");
+    const body = JSON.parse(String(init?.body));
+    expect(JSON.stringify(body)).not.toContain("test-key-not-real");
+    expect(body.model).toBe("qwen/qwen3.8-27b");
+    expect(body.response_format.type).toBe("json_schema");
+    expect(body.response_format.json_schema.schema.required).toEqual(
+      expect.arrayContaining(["title", "description", "confirmed_specs", "keywords", "missing_details"]),
+    );
+    expect(body.messages[0].role).toBe("system");
+    expect(body.messages[1].content[0]).toEqual({ type: "image_url", image_url: { url: "data:image/png;base64,AAAA" } });
+    expect(body.messages[1].content[1].text).toContain("Сумка");
+  });
+
+  it("переводит HTTP-ошибку Groq в понятную ошибку", async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ error: { message: "Rate limit reached", type: "tokens", code: "rate_limit_exceeded" } }, { status: 429 }),
+    );
+    const error = await generateListing(INPUT, null).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ListingGenerationError);
+    expect((error as ListingGenerationError).code).toBe("ai_overloaded");
+    expect((error as ListingGenerationError).refundable).toBe(true);
+  });
+
+  it("без ключа не обращается к API", async () => {
+    vi.stubEnv("GROQ_API_KEY", "");
+    const error = await generateListing(INPUT, null).catch((e: unknown) => e);
+    expect((error as ListingGenerationError).code).toBe("missing_api_key");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

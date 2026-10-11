@@ -1,9 +1,9 @@
 import { listingInputSchema, MAX_API_IMAGE_BYTES, type GenerateErrorCode, type GenerateResponse } from "@/lib/listing-schema";
-import { generateListing, getApiKey, ListingGenerationError, setupMessage, type ListingImage } from "@/lib/server/claude";
+import { generateListing, getApiKey, ListingGenerationError, setupMessage, type ListingImage } from "@/lib/server/groq";
 import { checkImage } from "@/lib/server/image";
 import { acquireGeneration, getClientKey } from "@/lib/server/rate-limit";
 
-// Ответ модели с фото обычно 5–30 с; тайм-аут запроса к ИИ — 90 с (см. lib/server/claude.ts).
+// Ответ модели с фото обычно 5–30 с; тайм-аут запроса к ИИ — 90 с (см. lib/server/groq.ts).
 export const maxDuration = 120;
 
 /** Максимальный размер тела запроса: фото + текстовые поля + накладные расходы multipart. */
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       503,
       "missing_api_key",
       setupMessage(
-        "Генерация через ИИ не настроена: на сервере не задан ANTHROPIC_API_KEY. Добавьте ключ в файл .env.local и перезапустите сервер.",
+        "Генерация через ИИ не настроена: на сервере не задан GROQ_API_KEY. Добавьте ключ в файл .env.local и перезапустите сервер.",
       ),
     );
   }

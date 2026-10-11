@@ -2,7 +2,7 @@ type Props = {
   onShowDemo: () => void;
 };
 
-/** Показывается, когда на сервере не задан ANTHROPIC_API_KEY. */
+/** Показывается, когда на сервере не задан GROQ_API_KEY. */
 export function SetupNotice({ onShowDemo }: Props) {
   // Инструкции по настройке нужны только разработчику — посетитель сайта их не видит.
   const isProduction = process.env.NODE_ENV === "production";
@@ -17,24 +17,24 @@ export function SetupNotice({ onShowDemo }: Props) {
       ) : (
         <>
           <p className="text-base font-semibold text-olive-950">Генерация через ИИ ещё не настроена</p>
-          <p className="mt-1 text-olive-700">На сервере не задан ключ ANTHROPIC_API_KEY. Чтобы включить генерацию:</p>
+          <p className="mt-1 text-olive-700">На сервере не задан ключ GROQ_API_KEY. Чтобы включить генерацию:</p>
           <ol className="mt-3 list-decimal space-y-1.5 pl-5">
             <li>
               Создайте API-ключ в{" "}
               <a
-                href="https://console.anthropic.com/settings/keys"
+                href="https://console.groq.com/keys"
                 target="_blank"
                 rel="noreferrer noopener"
                 className="font-medium text-olive-600 underline underline-offset-2"
               >
-                Anthropic Console
-              </a>{" "}
-              и пополните баланс.
+                GroqCloud Console
+              </a>
+              .
             </li>
             <li>
               Скопируйте файл <code className="rounded bg-olive-600/10 px-1 py-0.5 text-xs text-olive-900">.env.example</code> в{" "}
               <code className="rounded bg-olive-600/10 px-1 py-0.5 text-xs text-olive-900">.env.local</code> и укажите ключ в{" "}
-              <code className="rounded bg-olive-600/10 px-1 py-0.5 text-xs text-olive-900">ANTHROPIC_API_KEY</code>.
+              <code className="rounded bg-olive-600/10 px-1 py-0.5 text-xs text-olive-900">GROQ_API_KEY</code>.
             </li>
             <li>
               Перезапустите сервер: <code className="rounded bg-olive-600/10 px-1 py-0.5 text-xs text-olive-900">npm run dev</code>.

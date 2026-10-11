@@ -11,13 +11,13 @@ const LISTING: ListingOutput = {
   missing_details: [],
 };
 
-// Настоящий вызов Anthropic API в тестах не выполняется.
-vi.mock("@/lib/server/claude", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/server/claude")>();
+// Настоящий вызов Groq API в тестах не выполняется.
+vi.mock("@/lib/server/groq", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/server/groq")>();
   return { ...actual, generateListing: vi.fn() };
 });
 
-const { generateListing, ListingGenerationError } = await import("@/lib/server/claude");
+const { generateListing, ListingGenerationError } = await import("@/lib/server/groq");
 const { POST } = await import("@/app/api/generate/route");
 const generateMock = vi.mocked(generateListing);
 
@@ -41,7 +41,7 @@ async function post(body: FormData | string, headers: Record<string, string> = {
 beforeEach(() => {
   __resetRateLimitsForTests();
   generateMock.mockReset();
-  vi.stubEnv("ANTHROPIC_API_KEY", "test-key-not-real");
+  vi.stubEnv("GROQ_API_KEY", "test-key-not-real");
   vi.stubEnv("GENERATION_LIMIT_PER_HOUR", "2");
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -88,13 +88,13 @@ describe("POST /api/generate", () => {
   });
 
   it("без ключа объясняет настройку и не тратит лимит", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.stubEnv("GROQ_API_KEY", "");
     for (let i = 0; i < 3; i++) {
       const res = await post(form({ productName: "Сумка" }));
       expect(res.status).toBe(503);
       expect(!res.json.ok && res.json.error.code).toBe("missing_api_key");
     }
-    vi.stubEnv("ANTHROPIC_API_KEY", "test-key-not-real");
+    vi.stubEnv("GROQ_API_KEY", "test-key-not-real");
     generateMock.mockResolvedValue(LISTING);
     expect((await post(form({ productName: "Сумка" }))).status).toBe(200);
   });
