@@ -100,7 +100,7 @@ export function ListingResult({ listing, isDemo, market }: Props) {
           <p className="font-display text-base font-bold">ДЕМО — это не ответ ИИ</p>
           <p className="mt-1">
             Это статический пример, чтобы посмотреть интерфейс. Он не связан с введёнными вами данными.
-            {process.env.NODE_ENV !== "production" && " Для настоящей генерации настройте ANTHROPIC_API_KEY."}
+            {process.env.NODE_ENV !== "production" && " Для настоящей генерации настройте GROQ_API_KEY."}
           </p>
         </div>
       )}
