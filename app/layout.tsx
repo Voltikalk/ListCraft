@@ -1,15 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Montserrat, Unbounded } from "next/font/google";
 import { SITE_NAME } from "@/lib/site";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const body = Montserrat({
+  variable: "--font-body",
+  subsets: ["latin", "cyrillic"],
+});
+
+/** Широкий жирный шрифт для заголовков — как на референсе «оливковый + кремовый». */
+const display = Unbounded({
+  variable: "--font-display-face",
   subsets: ["latin", "cyrillic"],
 });
 
 const DESCRIPTION =
-  "Опишите товар по-русски и получите объявление на английском для eBay, Etsy и Amazon: заголовок, описание, характеристики и ключевые слова.";
+  "Опишите товар по-русски и получите готовое объявление: на русском для Авито, Ozon и Wildberries или на английском для eBay, Etsy и Amazon. Заголовок, описание, характеристики и ключевые слова.";
+const TITLE = `${SITE_NAME} — объявления для маркетплейсов из описания своими словами`;
 
 /** Публичный адрес сайта для ссылок в превью (Open Graph). На Vercel без него Next.js берёт адрес проекта. */
 function siteUrl(): URL | undefined {
@@ -23,7 +30,7 @@ function siteUrl(): URL | undefined {
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
   title: {
-    default: `${SITE_NAME} — объявления на английском из описания на русском`,
+    default: TITLE,
     template: `%s — ${SITE_NAME}`,
   },
   description: DESCRIPTION,
@@ -32,19 +39,19 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ru_RU",
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — объявления на английском из описания на русском`,
+    title: TITLE,
     description: DESCRIPTION,
   },
   twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#fefae0",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ru" className={`${inter.variable} h-full antialiased`}>
+    <html lang="ru" data-scroll-behavior="smooth" className={`${body.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

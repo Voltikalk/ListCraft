@@ -39,25 +39,25 @@ export function PhotoUpload({ previewUrl, processing, disabled, error, onSelect,
   return (
     <div>
       <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-        <span className="text-sm font-medium text-slate-800">Фото товара</span>
-        <span className="text-xs text-slate-500">необязательно · JPEG, PNG, WebP до 5 МБ</span>
+        <span className="text-sm font-medium text-olive-900">Фото товара</span>
+        <span className="text-xs text-olive-600">необязательно · JPEG, PNG, WebP до 5 МБ</span>
       </div>
 
       {previewUrl ? (
         <div
           {...dropHandlers}
-          className={`flex items-center gap-4 rounded-xl border p-3 transition ${
-            dragOver ? "border-indigo-400 bg-indigo-50" : "border-slate-200 bg-white"
+          className={`flex items-center gap-4 rounded-2xl border p-3 transition ${
+            dragOver ? "border-olive-600 bg-olive-600/10" : "border-olive-900/15 bg-cream-50/70"
           }`}
         >
           <img
             src={previewUrl}
             alt="Превью загруженного фото"
-            className="h-20 w-20 shrink-0 rounded-lg object-cover ring-1 ring-slate-200 sm:h-24 sm:w-24"
+            className="h-20 w-20 shrink-0 rounded-lg object-cover ring-1 ring-olive-900/10 sm:h-24 sm:w-24"
           />
-          <div className="min-w-0 flex-1 text-sm text-slate-600">
-            <p className="font-medium text-slate-800">{processing ? "Обрабатываем новое фото…" : "Фото добавлено"}</p>
-            <p className="mt-0.5 text-xs text-slate-500">
+          <div className="min-w-0 flex-1 text-sm text-olive-700">
+            <p className="font-medium text-olive-900">{processing ? "Обрабатываем новое фото…" : "Фото добавлено"}</p>
+            <p className="mt-0.5 text-xs text-olive-600">
               ИИ использует фото только для видимых деталей. Фото не сохраняется на сервере.
             </p>
             <div className="mt-2 flex flex-wrap gap-3">
@@ -65,7 +65,7 @@ export function PhotoUpload({ previewUrl, processing, disabled, error, onSelect,
                 type="button"
                 disabled={locked}
                 onClick={() => inputRef.current?.click()}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-full border border-olive-900/15 px-3.5 py-1.5 text-sm font-medium text-olive-900 transition hover:bg-olive-600/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-olive-600 disabled:opacity-50"
               >
                 Заменить
               </button>
@@ -73,7 +73,7 @@ export function PhotoUpload({ previewUrl, processing, disabled, error, onSelect,
                 type="button"
                 disabled={disabled}
                 onClick={onRemove}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                className="rounded-full border border-olive-900/15 px-3.5 py-1.5 text-sm font-medium text-rose-700 transition hover:bg-rose-600/[0.07] focus:outline-none focus-visible:ring-2 focus-visible:ring-olive-600 disabled:opacity-50"
               >
                 Удалить
               </button>
@@ -86,17 +86,17 @@ export function PhotoUpload({ previewUrl, processing, disabled, error, onSelect,
           disabled={locked}
           onClick={() => inputRef.current?.click()}
           {...dropHandlers}
-          className={`flex w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-6 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${
-            dragOver ? "border-indigo-400 bg-indigo-50" : "border-slate-300 bg-white hover:border-indigo-300 hover:bg-slate-50"
+          className={`flex w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-4 py-7 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            dragOver ? "border-olive-600 bg-olive-600/10" : "border-olive-900/20 bg-cream-50/70 hover:border-olive-600/50 hover:bg-olive-600/[0.05]"
           }`}
         >
-          <svg aria-hidden viewBox="0 0 24 24" className="h-7 w-7 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <svg aria-hidden viewBox="0 0 24 24" className="h-7 w-7 text-olive-600" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M3 16.5V18a2.5 2.5 0 0 0 2.5 2.5h13A2.5 2.5 0 0 0 21 18v-1.5M7.5 8 12 3.5 16.5 8M12 3.5V15" />
           </svg>
-          <span className="text-sm font-medium text-slate-700">
+          <span className="text-sm font-medium text-olive-900">
             {processing ? "Обрабатываем фото…" : "Нажмите или перетащите фото"}
           </span>
-          <span className="text-xs text-slate-500">Поможет точнее описать цвет, вид и детали товара</span>
+          <span className="text-xs text-olive-600">Поможет точнее описать цвет, вид и детали товара</span>
         </button>
       )}
 
@@ -108,7 +108,7 @@ export function PhotoUpload({ previewUrl, processing, disabled, error, onSelect,
         onChange={(e) => pick(e.target.files)}
       />
       {error && (
-        <p role="alert" className="mt-1.5 text-sm text-rose-600">
+        <p role="alert" className="mt-1.5 text-sm text-rose-700">
           {error}
         </p>
       )}

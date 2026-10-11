@@ -58,7 +58,22 @@ describe("POST /api/generate", () => {
     expect(res.status).toBe(200);
     expect(res.json).toEqual({ ok: true, listing: LISTING, remainingToday: 4 });
     expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ productName: "Сумка", condition: "used_good" }), null);
+    expect(generateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ market: "global", productName: "Сумка", condition: "used_good" }),
+      null,
+    );
+  });
+
+  it("передаёт выбранный рынок в генерацию и отклоняет неизвестный", async () => {
+    generateMock.mockResolvedValue(LISTING);
+    expect((await post(form({ productName: "Сумка", market: "ru" }))).status).toBe(200);
+    expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ market: "ru" }), null);
+
+    generateMock.mockClear();
+    const bad = await post(form({ productName: "Сумка", market: "mars" }));
+    expect(bad.status).toBe(400);
+    expect(!bad.json.ok && Object.keys(bad.json.error.fields ?? {})).toEqual(["market"]);
+    expect(generateMock).not.toHaveBeenCalled();
   });
 
   it("проверяет поля на сервере и не обращается к ИИ при ошибке", async () => {

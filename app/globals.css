@@ -1,18 +1,149 @@
 @import "tailwindcss";
 
+/* Палитра: оливковый #606C38 + кремовый #FEFAE0. */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #fefae0;
+  --foreground: #1f2412;
+  color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-face), var(--font-body), ui-sans-serif, sans-serif;
+}
+
+@theme {
+  --color-olive-50: #f6f7ee;
+  --color-olive-100: #e9ecd6;
+  --color-olive-200: #d3d9ae;
+  --color-olive-300: #b5c07e;
+  --color-olive-400: #95a256;
+  --color-olive-500: #7a8742;
+  --color-olive-600: #606c38;
+  --color-olive-700: #4b552c;
+  --color-olive-800: #3c4425;
+  --color-olive-900: #2f3520;
+  --color-olive-950: #1f2412;
+
+  --color-cream-50: #fffef6;
+  --color-cream-100: #fefae0;
+  --color-cream-200: #f6efcb;
+  --color-cream-300: #ebe1b3;
+
+  /* Охра — только для предупреждений. */
+  --color-ochre-100: #f8e7cc;
+  --color-ochre-500: #bc6c25;
+  --color-ochre-800: #6e3d12;
+
+  --animate-marquee: marquee 60s linear infinite;
+
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  --shadow-glow: 0 14px 30px -14px rgb(96 108 56 / 0.75);
+  --shadow-panel: 0 1px 0 rgb(255 255 255 / 0.8) inset, 0 24px 60px -36px rgb(47 53 32 / 0.45);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+::selection {
+  background: #606c38;
+  color: #fefae0;
+}
+
+/* Тонкая сетка, растворяющаяся к краям. Цвет линий задаётся через --grid-line. */
+.bg-grid {
+  --grid-line: rgb(47 53 32 / 0.07);
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+}
+.bg-grid-light {
+  --grid-line: rgb(254 250 224 / 0.09);
+}
+
+/* Мягкое свечение для страниц без WebGL-фона. */
+.bg-glow {
+  background:
+    radial-gradient(50rem 26rem at 12% -6%, rgb(181 192 126 / 0.35), transparent 65%),
+    radial-gradient(40rem 22rem at 92% 0%, rgb(211 217 174 / 0.45), transparent 65%);
+}
+
+/* Появление снизу. Задержка задаётся на элементе: [--rise-delay:90ms]. */
+@utility animate-rise {
+  animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) var(--rise-delay, 0s) both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+/* Анимации — только если пользователь не просил уменьшить движение. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Блоки плавно появляются при прокрутке. Там, где браузер не поддерживает
+     анимации по прокрутке, они просто видны сразу. */
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+
+  /* Плавное раскрытие ответов в FAQ (где поддерживается). */
+  .faq {
+    interpolate-size: allow-keywords;
+  }
+  .faq::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size 0.35s ease,
+      content-visibility 0.35s allow-discrete;
+  }
+  .faq[open]::details-content {
+    block-size: auto;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+
+/* Бегущая строка: при уменьшенном движении стоит на месте. */
+.marquee-track {
+  animation: var(--animate-marquee);
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
+select option {
+  background: #fffef6;
+  color: #1f2412;
 }

@@ -9,7 +9,7 @@ export const maxDuration = 120;
 /** Максимальный размер тела запроса: фото + текстовые поля + накладные расходы multipart. */
 const MAX_BODY_BYTES = MAX_API_IMAGE_BYTES + 64 * 1024;
 
-const TEXT_FIELDS = ["productName", "brand", "condition", "dimensions", "color", "material", "details"] as const;
+const TEXT_FIELDS = ["market", "productName", "brand", "condition", "dimensions", "color", "material", "details"] as const;
 
 function fail(
   status: number,

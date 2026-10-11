@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 // Только латиница: встроенный шрифт ImageResponse не содержит кириллицы.
-export const alt = "ListCraft Global — English marketplace listings from a Russian description";
+export const alt = "ListCraft Global — marketplace listings for Avito, Ozon, Wildberries, eBay, Etsy and Amazon";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -16,15 +16,15 @@ export default function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "center",
           padding: 80,
-          background: "#4f46e5",
-          color: "white",
+          backgroundColor: "#606c38",
+          color: "#fefae0",
         }}
       >
         <div style={{ fontSize: 40, opacity: 0.85 }}>ListCraft Global</div>
         <div style={{ fontSize: 72, fontWeight: 700, marginTop: 24, lineHeight: 1.1 }}>
-          English listings for eBay, Etsy and Amazon
+          Marketplace listings from a few words about your item
         </div>
-        <div style={{ fontSize: 36, marginTop: 32, opacity: 0.85 }}>Describe your item in Russian — get the listing in English</div>
+        <div style={{ fontSize: 36, marginTop: 32, opacity: 0.85 }}>Avito, Ozon, Wildberries, eBay, Etsy, Amazon</div>
       </div>
     ),
     size,

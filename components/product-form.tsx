@@ -1,9 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CONDITION_OPTIONS, FIELD_LIMITS, type ConditionValue } from "@/lib/listing-schema";
+import { CONDITION_OPTIONS, FIELD_LIMITS, MARKETS, type ConditionValue, type Market } from "@/lib/listing-schema";
 
 export type FormValues = {
+  market: Market;
   productName: string;
   brand: string;
   condition: ConditionValue;
@@ -14,6 +15,7 @@ export type FormValues = {
 };
 
 export const EMPTY_FORM: FormValues = {
+  market: "global",
   productName: "",
   brand: "",
   condition: "",
@@ -23,7 +25,7 @@ export const EMPTY_FORM: FormValues = {
   details: "",
 };
 
-type TextFieldName = Exclude<keyof FormValues, "condition">;
+type TextFieldName = Exclude<keyof FormValues, "condition" | "market">;
 
 type Props = {
   values: FormValues;
@@ -34,10 +36,10 @@ type Props = {
 };
 
 const inputClass =
-  "block w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:bg-slate-50 disabled:text-slate-500";
+  "block w-full rounded-xl border bg-cream-50/70 px-3.5 py-2.5 text-sm text-olive-900 transition placeholder:text-olive-500/80 hover:border-olive-900/30 focus:bg-cream-50 focus:outline-none focus:ring-4 focus:ring-olive-600/15 disabled:cursor-not-allowed disabled:opacity-60";
 
 function borderFor(error?: string) {
-  return error ? "border-rose-400 focus:border-rose-500" : "border-slate-300 focus:border-indigo-500";
+  return error ? "border-rose-600/60 focus:border-rose-600" : "border-olive-900/15 focus:border-olive-600/70";
 }
 
 function FieldShell({
@@ -60,28 +62,86 @@ function FieldShell({
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="text-sm font-medium text-slate-800">
+        <label htmlFor={id} className="text-sm font-medium text-olive-900">
           {label}
-          {required ? <span className="ml-0.5 text-rose-500">*</span> : null}
+          {required ? <span className="ml-0.5 text-olive-600">*</span> : null}
         </label>
-        {!required && <span className="text-xs text-slate-400">необязательно</span>}
+        {!required && <span className="text-xs text-olive-600">необязательно</span>}
       </div>
       {children}
       <div className="mt-1 flex justify-between gap-2 text-xs">
         {error ? (
-          <p id={`${id}-error`} role="alert" className="text-rose-600">
+          <p id={`${id}-error`} role="alert" className="text-rose-700">
             {error}
           </p>
         ) : (
-          <p className="text-slate-500">{hint}</p>
+          <p className="text-olive-600">{hint}</p>
         )}
         {counter && counter.length > counter.max * 0.8 && (
-          <span className={counter.length > counter.max ? "text-rose-600" : "text-slate-400"}>
+          <span className={counter.length > counter.max ? "text-rose-700" : "text-olive-600"}>
             {counter.length}/{counter.max}
           </span>
         )}
       </div>
     </div>
+  );
+}
+
+/** Переключатель «для каких площадок»: от него зависят язык и правила объявления. */
+function MarketPicker({
+  value,
+  disabled,
+  error,
+  onChange,
+}: {
+  value: Market;
+  disabled: boolean;
+  error?: string;
+  onChange: (market: Market) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-2 text-sm font-medium text-olive-900">Где будете продавать?</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {(Object.keys(MARKETS) as Market[]).map((key) => {
+          const market = MARKETS[key];
+          return (
+            <label
+              key={key}
+              className="group relative flex cursor-pointer flex-col rounded-2xl border border-olive-900/15 bg-cream-50/70 px-4 py-3 transition hover:border-olive-900/30 has-checked:border-olive-600/60 has-checked:bg-olive-600/10 has-checked:ring-4 has-checked:ring-olive-600/10 has-focus-visible:ring-4 has-focus-visible:ring-olive-600/30 has-disabled:cursor-not-allowed has-disabled:opacity-60"
+            >
+              <input
+                type="radio"
+                name="market"
+                value={key}
+                checked={value === key}
+                disabled={disabled}
+                onChange={() => onChange(key)}
+                className="sr-only"
+              />
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-olive-950">{market.label}</span>
+                <span
+                  aria-hidden
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-olive-900/30 group-has-checked:border-olive-600 group-has-checked:bg-olive-600"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-cream-100 opacity-0 group-has-checked:opacity-100" />
+                </span>
+              </span>
+              <span className="mt-0.5 text-xs text-olive-700">{market.platforms}</span>
+              <span className="mt-2 inline-flex w-fit rounded-full bg-cream-50/70 px-2 py-0.5 text-xs font-medium text-olive-700 group-has-checked:bg-olive-600 group-has-checked:text-cream-100">
+                Объявление {market.languageLabel}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      {error && (
+        <p role="alert" className="mt-1 text-xs text-rose-700">
+          {error}
+        </p>
+      )}
+    </fieldset>
   );
 }
 
@@ -115,6 +175,13 @@ export function ProductForm({ values, errors, disabled, onChange, photoSlot }: P
 
   return (
     <div className="space-y-5">
+      <MarketPicker
+        value={values.market}
+        disabled={disabled}
+        error={errors.market}
+        onChange={(market) => onChange({ ...values, market })}
+      />
+
       {text(
         "productName",
         "Название или тип товара",

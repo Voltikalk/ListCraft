@@ -42,11 +42,11 @@ export function CopyButton({ text, label = "Копировать", variant = "gh
   }, [state]);
 
   const base =
-    "inline-flex items-center gap-1.5 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center gap-1.5 rounded-full text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-olive-600 disabled:opacity-50 disabled:cursor-not-allowed";
   const styles =
     variant === "primary"
-      ? "bg-slate-900 px-3.5 py-2 text-white hover:bg-slate-700"
-      : "border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 hover:bg-slate-50";
+      ? "bg-olive-600 px-3.5 py-2 text-cream-100 hover:bg-olive-700"
+      : "border border-olive-900/15 bg-cream-50/70 px-2.5 py-1.5 text-olive-800 hover:bg-olive-600/10 hover:text-olive-950";
 
   return (
     <button
@@ -58,7 +58,7 @@ export function CopyButton({ text, label = "Копировать", variant = "gh
     >
       {state === "copied" ? (
         <>
-          <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4 text-emerald-500" fill="currentColor">
+          <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4 text-olive-600" fill="currentColor">
             <path fillRule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z" clipRule="evenodd" />
           </svg>
           Скопировано

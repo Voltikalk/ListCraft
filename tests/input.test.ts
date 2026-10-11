@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { FIELD_LIMITS, listingInputSchema } from "@/lib/listing-schema";
-import { buildUserPrompt } from "@/lib/server/prompt";
+import { buildUserPrompt, SYSTEM_PROMPTS } from "@/lib/server/prompt";
 
 describe("listingInputSchema", () => {
   it("принимает минимальный ввод и заполняет необязательные поля пустыми строками", () => {
     const result = listingInputSchema.safeParse({ productName: "  Сумка  " });
     expect(result.success).toBe(true);
     expect(result.data).toEqual({
+      market: "global",
       productName: "Сумка",
       brand: "",
       condition: "",
@@ -41,6 +42,13 @@ describe("listingInputSchema", () => {
     expect(bad.error?.issues[0]?.message).toBe("Выберите состояние из списка");
   });
 
+  it("принимает только известный рынок", () => {
+    expect(listingInputSchema.parse({ productName: "Сумка", market: "ru" }).market).toBe("ru");
+    const bad = listingInputSchema.safeParse({ productName: "Сумка", market: "cn" });
+    expect(bad.success).toBe(false);
+    expect(bad.error?.issues[0]?.path).toEqual(["market"]);
+  });
+
   it("отклоняет нестроковые значения", () => {
     expect(listingInputSchema.safeParse({ productName: 123 }).success).toBe(false);
     expect(listingInputSchema.safeParse({ productName: "Сумка", brand: ["x"] }).success).toBe(false);
@@ -67,6 +75,20 @@ describe("buildUserPrompt", () => {
     expect(prompt).toContain("Used, good condition");
     expect(prompt).not.toContain("brand:");
     expect(prompt).toContain("One product photo is attached");
+  });
+
+  it("для российских площадок просит русский текст и оставляет состояние по-русски", () => {
+    const prompt = buildUserPrompt({ ...base, market: "ru", condition: "used_good" }, false);
+    expect(prompt).toContain("Russian marketplace listing");
+    expect(prompt).toContain("Б/у, хорошее состояние");
+    expect(prompt).not.toContain("Used, good condition");
+  });
+
+  it("системные промпты задают язык и лимит заголовка своего рынка", () => {
+    expect(SYSTEM_PROMPTS.ru).toContain("50");
+    expect(SYSTEM_PROMPTS.ru).toMatch(/Russian/);
+    expect(SYSTEM_PROMPTS.global).toContain("80");
+    expect(SYSTEM_PROMPTS.global).toMatch(/English/);
   });
 
   it("сообщает модели, что фото нет", () => {

@@ -7,7 +7,7 @@ import {
   type ListingInput,
   type ListingOutput,
 } from "@/lib/listing-schema";
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt";
+import { SYSTEM_PROMPTS, buildUserPrompt } from "./prompt";
 
 const DEFAULT_MODEL = "claude-opus-5-5";
 
@@ -85,7 +85,7 @@ export async function generateListing(input: ListingInput, image: ListingImage |
     response = await client.beta.messages.create({
       model,
       max_tokens: MAX_OUTPUT_TOKENS,
-      system: SYSTEM_PROMPT,
+      system: SYSTEM_PROMPTS[input.market],
       messages: [{ role: "user", content }],
       output_config: {
         format: betaZodOutputFormat(listingOutputSchema),
@@ -104,6 +104,7 @@ export async function generateListing(input: ListingInput, image: ListingImage |
     stop_reason: response.stop_reason,
     input_tokens: response.usage.input_tokens,
     output_tokens: response.usage.output_tokens,
+    market: input.market,
     has_image: image !== null,
     ms: Date.now() - startedAt,
   });

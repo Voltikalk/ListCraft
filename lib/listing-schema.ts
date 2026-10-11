@@ -24,7 +24,29 @@ export const MAX_API_IMAGE_BYTES = Math.floor((MAX_IMAGE_BYTES * 3) / 4);
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
 
-export const TITLE_MAX_LENGTH = 80;
+/**
+ * Рынки, для которых пишется объявление. Лимиты заголовка взяты из правил площадок:
+ * eBay — 80 символов; Авито — 50, Wildberries — 60, Ozon — 200 (берём самый строгий).
+ */
+export const MARKETS = {
+  global: {
+    label: "Зарубежные площадки",
+    platforms: "eBay, Etsy, Amazon",
+    languageLabel: "на английском",
+    titleMax: 80,
+    titleHint: "eBay не примет заголовок длиннее 80 символов — сократите его.",
+  },
+  ru: {
+    label: "Российские площадки",
+    platforms: "Авито, Ozon, Wildberries",
+    languageLabel: "на русском",
+    titleMax: 50,
+    titleHint: "Авито принимает заголовок до 50 символов, Wildberries — до 60. Сократите его.",
+  },
+} as const;
+
+export type Market = keyof typeof MARKETS;
+export const MARKET_VALUES = Object.keys(MARKETS) as [Market, ...Market[]];
 
 export const CONDITION_OPTIONS = [
   { value: "", label: "Не указано", en: "" },
@@ -47,6 +69,7 @@ const optionalText = (max: number, label: string) =>
     .default("");
 
 export const listingInputSchema = z.object({
+  market: z.enum(MARKET_VALUES, { error: "Выберите, для каких площадок нужно объявление" }).default("global"),
   productName: z
     .string()
     .trim()
@@ -67,20 +90,20 @@ export type ListingInput = z.infer<typeof listingInputSchema>;
  * массивы и enum), чтобы соответствовать возможностям structured outputs.
  */
 export const listingOutputSchema = z.object({
-  title: z.string().describe("Marketplace listing title in English, at most 80 characters"),
-  description: z.string().describe("Listing description in English, plain text, short paragraphs"),
+  title: z.string().describe("Marketplace listing title in the target language, within the title length limit"),
+  description: z.string().describe("Listing description in the target language, plain text, short paragraphs"),
   confirmed_specs: z
     .array(
       z.object({
-        name: z.string().describe("Specification name in English, e.g. 'Brand', 'Color'"),
-        value: z.string().describe("Specification value in English"),
+        name: z.string().describe("Specification name in the target language"),
+        value: z.string().describe("Specification value in the target language"),
         source: z
           .enum(["seller", "photo"])
           .describe("'seller' if stated by the seller, 'photo' if only visible in the photo"),
       }),
     )
     .describe("Only facts stated by the seller or clearly visible in the photo"),
-  keywords: z.array(z.string()).describe("Search keywords / tags in English"),
+  keywords: z.array(z.string()).describe("Search keywords / tags in the target language"),
   missing_details: z
     .array(z.string())
     .describe("In Russian: details the seller should clarify to improve the listing"),

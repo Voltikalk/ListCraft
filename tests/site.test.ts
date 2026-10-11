@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DEMO_LISTING, EXAMPLE_INPUT } from "@/lib/demo-listing";
-import { listingInputSchema, listingOutputSchema, TITLE_MAX_LENGTH } from "@/lib/listing-schema";
+import { DEMO_LISTINGS, EXAMPLE_INPUT } from "@/lib/demo-listing";
+import { listingInputSchema, listingOutputSchema, MARKET_VALUES, MARKETS } from "@/lib/listing-schema";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -8,10 +8,10 @@ afterEach(() => {
 });
 
 describe("пример на лендинге", () => {
-  it("проходит те же проверки, что и настоящие данные", () => {
-    expect(listingInputSchema.safeParse(EXAMPLE_INPUT).success).toBe(true);
-    expect(listingOutputSchema.safeParse(DEMO_LISTING).success).toBe(true);
-    expect(DEMO_LISTING.title.length).toBeLessThanOrEqual(TITLE_MAX_LENGTH);
+  it.each(MARKET_VALUES)("для рынка %s проходит те же проверки, что и настоящие данные", (market) => {
+    expect(listingInputSchema.safeParse({ ...EXAMPLE_INPUT, market }).success).toBe(true);
+    expect(listingOutputSchema.safeParse(DEMO_LISTINGS[market]).success).toBe(true);
+    expect(DEMO_LISTINGS[market].title.length).toBeLessThanOrEqual(MARKETS[market].titleMax);
   });
 });
 
