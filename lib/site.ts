@@ -25,6 +25,9 @@ export const CONTACT_EMAIL: string | null = (() => {
   return EMAIL_RE.test(value) ? value : null;
 })();
 
+/** Публичный ключ Cloudflare Turnstile. null — проверка «Я не робот» выключена. */
+export const TURNSTILE_SITE_KEY: string | null = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || null;
+
 export type MailTopic = "bug" | "feedback" | "paid";
 
 const MAIL_TEMPLATES: Record<MailTopic, { subject: string; body: string }> = {

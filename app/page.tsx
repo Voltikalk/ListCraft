@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { ExampleTabs } from "@/components/example-tabs";
-import Aurora from "@/components/reactbits/Aurora";
+import CRTWarp from "@/components/reactbits/CRTWarp";
 import GradientText from "@/components/reactbits/GradientText";
 import ShinyText from "@/components/reactbits/ShinyText";
 import { card, GlowCard, MailLink, primaryButton, secondaryButton, SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { DEMO_LISTINGS, EXAMPLE_INPUT } from "@/lib/demo-listing";
 import { CONDITION_OPTIONS, MARKETS, type Market } from "@/lib/listing-schema";
 import { getLimits } from "@/lib/server/rate-limit";
-import { CONTACT_EMAIL, listingsCount, PAID_PACK } from "@/lib/site";
+import { getRedisConfig } from "@/lib/server/shared-rate-limit";
+import { CONTACT_EMAIL, listingsCount, PAID_PACK, TURNSTILE_SITE_KEY } from "@/lib/site";
 
 const MARKET_CARDS: { market: Market; code: string; color: string; points: string[] }[] = [
   {
@@ -286,13 +287,24 @@ function HeroPreview() {
   );
 }
 
-const PRIVACY = [
-  "Текст и фото отправляются на наш сервер, а с него — в Groq API (модель Qwen), который и составляет объявление.",
-  "У ListCraft Global нет базы данных: мы не сохраняем описания, фото и готовые объявления. С нашей стороны результат остаётся только в вашей вкладке браузера.",
-  "Перед отправкой браузер уменьшает фото и пересохраняет его — при этом удаляются метаданные, в том числе геолокация. Если браузеру не удалось обработать фото, отправляется исходный файл.",
-  "Для бесплатного лимита сервер считает запросы по IP-адресу. Счётчики хранятся только в памяти сервера и обнуляются при его перезапуске.",
-  "В журналы сервера попадают только технические сведения — модель ИИ, выбранный рынок, число токенов, время ответа, было ли приложено фото, коды ошибок — без текста и фото. Хостинг-провайдер может вести стандартные журналы запросов (например, IP-адрес и время).",
-];
+/** Текст зависит от настроек сервера (собирается при сборке страницы). */
+function privacyItems(): string[] {
+  const counters = getRedisConfig()
+    ? "Счётчики хранятся в базе Upstash Redis и удаляются не позже чем через сутки."
+    : "Счётчики хранятся только в памяти сервера и обнуляются при его перезапуске.";
+  return [
+    "Текст и фото отправляются на наш сервер, а с него — в Groq API (модель Qwen), который и составляет объявление.",
+    "Мы не сохраняем описания, фото и готовые объявления. С нашей стороны результат остаётся только в вашей вкладке браузера.",
+    "Перед отправкой браузер уменьшает фото и пересохраняет его — при этом удаляются метаданные, в том числе геолокация. Если браузеру не удалось обработать фото, отправляется исходный файл.",
+    `Для бесплатного лимита сервер считает запросы с вашего IP-адреса. Сам адрес в счётчиках не хранится — только его хеш, по которому адрес нельзя просто прочитать. ${counters}`,
+    ...(TURNSTILE_SITE_KEY
+      ? [
+          "Чтобы отсеивать ботов, форма использует Cloudflare Turnstile: скрипт Cloudflare проверяет браузер и обычно не требует от вас никаких действий.",
+        ]
+      : []),
+    "В журналы сервера попадают только технические сведения — модель ИИ, выбранный рынок, число токенов, время ответа, было ли приложено фото, коды ошибок — без текста и фото. Хостинг-провайдер может вести стандартные журналы запросов (например, IP-адрес и время).",
+  ];
+}
 
 export default function Home() {
   const freeQuota = `${listingsCount(getLimits().perDay)} за 24 часа`;
@@ -305,15 +317,34 @@ export default function Home() {
       <main className="flex-1">
         {/* Первый экран */}
         <section className="relative isolate overflow-hidden bg-olive-600 text-cream-100">
-          <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-[46rem]">
-            <Aurora colorStops={["#95a256", "#fefae0", "#b5c07e"]} amplitude={1.1} blend={0.6} speed={0.6} height={0.38} glow={0.35} layers={2} opacity={0.35} intro={false} />
-            <div className="absolute inset-0 bg-linear-to-b from-transparent via-olive-600/50 to-olive-600" />
+          <div aria-hidden className="absolute inset-0 -z-10">
+            <CRTWarp
+              color="#b5c07e"
+              backgroundColor="#606c38"
+              speed={0.4}
+              curvature={0.25}
+              scanlineStrength={0.3}
+              scanlineFrequency={200}
+              waveAmplitude={0.3}
+              waveFrequency={2.5}
+              bloom={1.2}
+              bloomRadius={1}
+              noise={0.05}
+              vignette={0.35}
+              brightness={0.75}
+              rgbShift={0.006}
+              mouseStrength={0.4}
+              dpr={1}
+              fps={30}
+            />
+            {/* Притушить узор под текстом и плавно перейти в однотонный низ секции. */}
+            <div className="absolute inset-0 bg-olive-600/30" />
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-linear-to-b from-transparent to-olive-600" />
           </div>
-          <div aria-hidden className="bg-grid bg-grid-light absolute inset-0 -z-10" />
 
           <div className="mx-auto max-w-6xl px-4 pt-10 pb-20 sm:px-6 sm:pt-14 sm:pb-28">
             <div className="flex items-center justify-between gap-4 border-b border-cream-100/25 pb-3 motion-safe:animate-rise text-[11px] font-semibold uppercase tracking-[0.25em]">
-              <ShinyText text="Авито · Ozon · Wildberries · eBay · Etsy · Amazon" color="#d3d9ae" shineColor="#fefae0" speed={3} />
+              <ShinyText text="Авито · Ozon · Wildberries · eBay · Etsy · Amazon" color="#b5c07e" shineColor="#fefae0" speed={3} />
               <span aria-hidden className="hidden text-cream-100/70 sm:inline">
                 RU / EN
               </span>
@@ -537,7 +568,7 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
           <SectionTitle id="privacy" num={6} eyebrow="Приватность" title="Что происходит с вашими данными" />
           <ul className={`${card} reveal mt-10 grid gap-x-10 gap-y-5 p-6 text-sm leading-relaxed text-olive-800 sm:p-8 md:grid-cols-2`}>
-            {PRIVACY.map((item) => (
+            {privacyItems().map((item) => (
               <li key={item} className="flex gap-3">
                 <CheckIcon />
                 <span>{item}</span>

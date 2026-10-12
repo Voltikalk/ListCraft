@@ -128,6 +128,8 @@ export type GenerateErrorCode =
   | "payload_too_large"
   | "rate_limited"
   | "busy"
+  | "captcha_failed"
+  | "service_unavailable"
   | "ai_overloaded"
   | "ai_timeout"
   | "ai_refused"

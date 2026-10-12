@@ -188,6 +188,70 @@ describe("POST /api/generate", () => {
   });
 });
 
+describe("POST /api/generate: Turnstile и общее хранилище", () => {
+  function stubSiteverify(result: object | Error) {
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      expect(String(url)).toBe("https://challenges.cloudflare.com/turnstile/v0/siteverify");
+      const body = new URLSearchParams(String(init?.body));
+      expect(body.get("secret")).toBe("test-secret");
+      if (result instanceof Error) throw result;
+      return Response.json(result);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  beforeEach(() => vi.stubEnv("TURNSTILE_SECRET_KEY", "test-secret"));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("без токена не обращается к ИИ и не тратит лимит", async () => {
+    const fetchMock = stubSiteverify({ success: true });
+    for (let i = 0; i < 3; i++) {
+      const res = await post(form({ productName: "Сумка" }));
+      expect(res.status).toBe(403);
+      expect(!res.json.ok && res.json.error.code).toBe("captcha_failed");
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(generateMock).not.toHaveBeenCalled();
+  });
+
+  it("пропускает запрос с подтверждённым токеном", async () => {
+    const fetchMock = stubSiteverify({ success: true });
+    generateMock.mockResolvedValue(LISTING);
+    const res = await post(form({ productName: "Сумка", "cf-turnstile-response": "XXXX.DUMMY.TOKEN.XXXX" }));
+    expect(res.status).toBe(200);
+    const body = new URLSearchParams(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(body.get("response")).toBe("XXXX.DUMMY.TOKEN.XXXX");
+    expect(body.get("remoteip")).toBe("10.0.0.1");
+  });
+
+  it("отклоняет неподтверждённый токен", async () => {
+    stubSiteverify({ success: false, "error-codes": ["timeout-or-duplicate"] });
+    const res = await post(form({ productName: "Сумка", "cf-turnstile-response": "used-token" }));
+    expect(res.status).toBe(403);
+    expect(generateMock).not.toHaveBeenCalled();
+  });
+
+  it("если Cloudflare недоступен, отвечает 503 и не обращается к ИИ", async () => {
+    stubSiteverify(new Error("network down"));
+    const res = await post(form({ productName: "Сумка", "cf-turnstile-response": "token" }));
+    expect(res.status).toBe(503);
+    expect(!res.json.ok && res.json.error.code).toBe("service_unavailable");
+    expect(generateMock).not.toHaveBeenCalled();
+  });
+
+  it("если Redis недоступен, отвечает 503 и не обращается к ИИ", async () => {
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.test");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "test-token");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("error", { status: 500 })));
+    const res = await post(form({ productName: "Сумка" }));
+    expect(res.status).toBe(503);
+    expect(!res.json.ok && res.json.error.code).toBe("service_unavailable");
+    expect(generateMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("checkImage", () => {
   it("принимает JPEG и отклоняет пустые, большие и неподдерживаемые файлы", async () => {
     expect((await checkImage(new File([JPEG], "a.jpg", { type: "image/jpeg" }))).ok).toBe(true);

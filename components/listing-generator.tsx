@@ -13,23 +13,65 @@ import {
   type ListingOutput,
   type Market,
 } from "@/lib/listing-schema";
-import { CONTACT_EMAIL, PAID_PACK } from "@/lib/site";
+import { CONTACT_EMAIL, PAID_PACK, TURNSTILE_SITE_KEY } from "@/lib/site";
 import { ListingResult } from "./listing-result";
 import { PhotoUpload } from "./photo-upload";
 import { EMPTY_FORM, ProductForm, type FormValues } from "./product-form";
 import { SetupNotice } from "./setup-notice";
 import { card, MailLink, primaryButton } from "./site-chrome";
+import { Turnstile } from "./turnstile";
 
 /** Чуть больше, чем maxDuration маршрута, чтобы обычно получать ответ сервера, а не обрыв. */
 const CLIENT_TIMEOUT_MS = 130_000;
 
 type Result = { id: number; listing: ListingOutput; isDemo: boolean; market: Market };
 /** upsell — исчерпана личная бесплатная квота (а не часовой или общий лимит сервиса). */
-type UiError = { code: GenerateErrorCode | "network" | "timeout"; message: string; upsell?: boolean };
+type UiError = { code: GenerateErrorCode | "network" | "timeout" | "captcha_pending"; message: string; upsell?: boolean };
 type Photo = PreparedImage & { id: number };
 
 function inputKey(values: FormValues, photo: Photo | null) {
   return JSON.stringify([values, photo?.id ?? null]);
+}
+
+/** Ожидание без выдуманных процентов: сколько прошло и что происходит. */
+function GenerationProgress({ market, withPhoto }: { market: Market; withPhoto: boolean }) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const startedAt = Date.now();
+    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const hint =
+    seconds < 30
+      ? "Не закрывайте страницу — объявление появится здесь."
+      : seconds < 90
+        ? `${withPhoto ? "С фотографией" : "Иногда"} ответ занимает дольше. Ждём до двух минут.`
+        : "Ответ задерживается. Если сервер не ответит, здесь появится сообщение об ошибке.";
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <p className="font-medium text-olive-900">
+          {market === "ru" ? "ИИ оформляет объявление на русском…" : "ИИ переводит и оформляет объявление…"}
+        </p>
+        <span aria-hidden className="shrink-0 tabular-nums text-olive-600">
+          {seconds} с
+        </span>
+      </div>
+      <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-olive-600/10">
+        <div className="h-full w-2/5 rounded-full bg-olive-600 motion-safe:animate-progress motion-reduce:w-full motion-reduce:opacity-40" />
+      </div>
+      <p className="text-xs text-olive-600">{hint}</p>
+    </div>
+  );
+}
+
+/** На узком экране карточка результата под формой — показываем её, чтобы было видно ожидание и ошибки. */
+function revealOnNarrowScreen(element: HTMLElement | null) {
+  if (element && !window.matchMedia("(min-width: 1024px)").matches) {
+    requestAnimationFrame(() => element.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 }
 
 export function ListingGenerator() {
@@ -44,6 +86,8 @@ export function ListingGenerator() {
   const [lastKey, setLastKey] = useState<string | null>(null);
   const [confirmRepeat, setConfirmRepeat] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   const inFlight = useRef(false);
   const counter = useRef(0);
@@ -150,6 +194,15 @@ export function ListingGenerator() {
       return;
     }
 
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setError({
+        code: "captcha_pending",
+        message: "Проверка «Я не робот» ещё не завершена. Подождите пару секунд и нажмите кнопку снова.",
+      });
+      revealOnNarrowScreen(resultRef.current);
+      return;
+    }
+
     inFlight.current = true;
     setLoading(true);
     setError(null);
@@ -160,6 +213,8 @@ export function ListingGenerator() {
     const form = new FormData();
     for (const [name, value] of Object.entries(parsed.data)) form.append(name, value);
     if (photo) form.append("photo", photo.file);
+    if (captchaToken) form.append("cf-turnstile-response", captchaToken);
+    revealOnNarrowScreen(resultRef.current);
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
@@ -221,6 +276,11 @@ export function ListingGenerator() {
       clearTimeout(timer);
       inFlight.current = false;
       setLoading(false);
+      // Токен Turnstile одноразовый — для следующего запроса нужен новый.
+      if (TURNSTILE_SITE_KEY) {
+        setCaptchaToken(null);
+        setCaptchaReset((n) => n + 1);
+      }
     }
   };
 
@@ -289,6 +349,17 @@ export function ListingGenerator() {
           </div>
         )}
 
+        {TURNSTILE_SITE_KEY && (
+          <Turnstile
+            siteKey={TURNSTILE_SITE_KEY}
+            resetKey={captchaReset}
+            onToken={(token) => {
+              setCaptchaToken(token);
+              if (token) setError((prev) => (prev?.code === "captcha_pending" ? null : prev));
+            }}
+          />
+        )}
+
         <button
           type="submit"
           disabled={busy}
@@ -355,9 +426,7 @@ export function ListingGenerator() {
 
           {loading && (
             <div className="space-y-4">
-              <p className="text-sm text-olive-700">
-                {shownKey === "ru" ? "ИИ оформляет объявление на русском…" : "ИИ переводит и оформляет объявление…"}
-              </p>
+              <GenerationProgress market={shownKey} withPhoto={photo !== null} />
               {[1, 3, 2, 2].map((lines, i) => (
                 <div key={i} className="space-y-2">
                   <div className="h-3 w-32 animate-pulse rounded bg-olive-600/10" />
