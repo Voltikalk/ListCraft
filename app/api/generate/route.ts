@@ -1,7 +1,9 @@
 import { listingInputSchema, MAX_API_IMAGE_BYTES, type GenerateErrorCode, type GenerateResponse } from "@/lib/listing-schema";
 import { generateListing, getApiKey, ListingGenerationError, setupMessage, type ListingImage } from "@/lib/server/groq";
 import { checkImage } from "@/lib/server/image";
-import { acquireGeneration, getClientKey } from "@/lib/server/rate-limit";
+import { getClientKey } from "@/lib/server/rate-limit";
+import { reserveGeneration } from "@/lib/server/shared-rate-limit";
+import { getTurnstileSecret, verifyTurnstile } from "@/lib/server/turnstile";
 
 // Ответ модели с фото обычно 5–30 с; тайм-аут запроса к ИИ — 90 с (см. lib/server/groq.ts).
 export const maxDuration = 120;
@@ -105,9 +107,26 @@ export async function POST(request: Request) {
     );
   }
 
-  // 4. Ограничение частоты генераций.
-  const limit = acquireGeneration(getClientKey(request.headers));
+  const clientKey = getClientKey(request.headers);
+
+  // 4. Проверка на бота (если включён Cloudflare Turnstile) — до списания лимита.
+  const turnstileSecret = getTurnstileSecret();
+  if (turnstileSecret) {
+    const token = form.get("cf-turnstile-response");
+    const check = await verifyTurnstile(turnstileSecret, typeof token === "string" ? token : "", clientKey);
+    if (!check.ok) {
+      return check.reason === "unavailable"
+        ? fail(503, "service_unavailable", "Не удалось проверить, что вы не робот. Попробуйте через минуту.")
+        : fail(403, "captcha_failed", "Проверка «Я не робот» не пройдена или устарела. Пройдите её ещё раз.");
+    }
+  }
+
+  // 5. Ограничение частоты генераций.
+  const limit = await reserveGeneration(clientKey);
   if (!limit.ok) {
+    if (limit.reason === "unavailable") {
+      return fail(503, "service_unavailable", limit.message, { headers: { "Retry-After": String(limit.retryAfterSeconds) } });
+    }
     return fail(429, limit.reason, limit.message, {
       headers: { "Retry-After": String(limit.retryAfterSeconds) },
       remainingToday: limit.remainingToday,
@@ -120,7 +139,7 @@ export async function POST(request: Request) {
     return Response.json(body, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof ListingGenerationError) {
-      if (error.refundable) limit.refund();
+      if (error.refundable) await limit.refund();
       // Неоплаченные попытки возвращены (refund), остальные засчитаны — сообщаем актуальный остаток.
       return fail(error.httpStatus, error.code, error.userMessage, { remainingToday: limit.remainingToday() });
     }
@@ -129,6 +148,6 @@ export async function POST(request: Request) {
       remainingToday: limit.remainingToday(),
     });
   } finally {
-    limit.release();
+    await limit.release();
   }
 }

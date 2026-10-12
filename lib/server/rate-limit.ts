@@ -1,21 +1,20 @@
 /**
- * Простое ограничение генераций В ПАМЯТИ ПРОЦЕССА.
+ * Ограничение генераций В ПАМЯТИ ПРОЦЕССА — запасной вариант, когда не настроен Redis
+ * (см. lib/server/shared-rate-limit.ts).
  *
  * ⚠️ Подходит только для локальной разработки и закрытого теста на одном сервере:
  *  - счётчики сбрасываются при перезапуске;
  *  - на serverless-платформах (Vercel и т.п.) у каждого экземпляра свои счётчики;
  *  - IP берётся из заголовка x-forwarded-for, который клиент может подделать,
  *    если перед приложением нет доверенного прокси.
- * Перед публичным запуском замените на общее хранилище (например, Upstash Redis
- * + @upstash/ratelimit) и/или привязку к аккаунту/ключу доступа.
  */
 
 import { listingsCount } from "@/lib/site";
 
 type Window = { count: number; resetAt: number };
 
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
+export const HOUR = 60 * 60 * 1000;
+export const DAY = 24 * HOUR;
 
 const perIpHour = new Map<string, Window>();
 const perIpDay = new Map<string, Window>();
@@ -65,22 +64,60 @@ function cleanup(now: number) {
   for (const [key, w] of perIpDay) if (w.resetAt <= now) perIpDay.delete(key);
 }
 
+export type LimitRejection = {
+  ok: false;
+  /** unavailable — не удалось проверить лимит (хранилище недоступно). */
+  reason: "busy" | "rate_limited" | "unavailable";
+  retryAfterSeconds: number;
+  message: string;
+  /** Остаток личной бесплатной квоты, если он известен. 0 — исчерпана именно она. */
+  remainingToday?: number;
+};
+
 export type LimitResult =
-  | { ok: true; release: () => void; refund: () => void; remainingToday: () => number }
   | {
-      ok: false;
-      reason: "busy" | "rate_limited";
-      retryAfterSeconds: number;
-      message: string;
-      /** Остаток личной бесплатной квоты, если он известен. 0 — исчерпана именно она. */
-      remainingToday?: number;
-    };
+      ok: true;
+      release: () => void | Promise<void>;
+      refund: () => void | Promise<void>;
+      remainingToday: () => number;
+    }
+  | LimitRejection;
 
 /** «7 ч 12 мин», «35 мин». Окна скользящие: отсчёт идёт от первого запроса, а не от полуночи. */
 function formatWait(ms: number): string {
   const minutes = Math.max(1, Math.ceil(ms / 60000));
   const hours = Math.floor(minutes / 60);
   return hours > 0 ? `${hours} ч ${minutes % 60} мин` : `${minutes} мин`;
+}
+
+export const BUSY: LimitRejection = {
+  ok: false,
+  reason: "busy",
+  retryAfterSeconds: 5,
+  message: "Предыдущее объявление ещё создаётся. Дождитесь результата.",
+};
+
+/** Отказ по одному из лимитов: общему суточному, личному суточному или часовому. */
+export function limitRejection(
+  kind: "global" | "day" | "hour",
+  waitMs: number,
+  remainingToday?: number,
+): LimitRejection {
+  const limits = getLimits();
+  const wait = formatWait(waitMs);
+  const message =
+    kind === "global"
+      ? `Сервис временно исчерпал общий лимит объявлений. Попробуйте через ${wait}.`
+      : kind === "day"
+        ? `Бесплатный лимит — ${listingsCount(limits.perDay)} за 24 часа — исчерпан. Новые бесплатные объявления станут доступны через ${wait}.`
+        : `Достигнут лимит: ${listingsCount(limits.perHour)} в час. Повторите через ${wait}.`;
+  return {
+    ok: false,
+    reason: "rate_limited",
+    retryAfterSeconds: Math.max(1, Math.ceil(waitMs / 1000)),
+    message,
+    ...(kind === "day" ? { remainingToday: 0 } : remainingToday !== undefined ? { remainingToday } : {}),
+  };
 }
 
 /**
@@ -93,44 +130,16 @@ export function acquireGeneration(clientKey: string, now = Date.now()): LimitRes
   const limits = getLimits();
   cleanup(now);
 
-  if (inFlight.has(clientKey)) {
-    return {
-      ok: false,
-      reason: "busy",
-      retryAfterSeconds: 5,
-      message: "Предыдущее объявление ещё создаётся. Дождитесь результата.",
-    };
-  }
+  if (inFlight.has(clientKey)) return BUSY;
 
   if (globalDay.resetAt <= now) globalDay = { count: 0, resetAt: now + DAY };
-  if (globalDay.count >= limits.globalPerDay) {
-    return {
-      ok: false,
-      reason: "rate_limited",
-      retryAfterSeconds: Math.ceil((globalDay.resetAt - now) / 1000),
-      message: `Сервис временно исчерпал общий лимит объявлений. Попробуйте через ${formatWait(globalDay.resetAt - now)}.`,
-    };
-  }
+  if (globalDay.count >= limits.globalPerDay) return limitRejection("global", globalDay.resetAt - now);
 
   const hour = peek(perIpHour, clientKey, HOUR, now);
   const day = peek(perIpDay, clientKey, DAY, now);
-  if (day.count >= limits.perDay) {
-    return {
-      ok: false,
-      reason: "rate_limited",
-      retryAfterSeconds: Math.ceil((day.resetAt - now) / 1000),
-      message: `Бесплатный лимит — ${listingsCount(limits.perDay)} за 24 часа — исчерпан. Новые бесплатные объявления станут доступны через ${formatWait(day.resetAt - now)}.`,
-      remainingToday: 0,
-    };
-  }
+  if (day.count >= limits.perDay) return limitRejection("day", day.resetAt - now);
   if (hour.count >= limits.perHour) {
-    return {
-      ok: false,
-      reason: "rate_limited",
-      retryAfterSeconds: Math.ceil((hour.resetAt - now) / 1000),
-      message: `Достигнут лимит: ${listingsCount(limits.perHour)} в час. Повторите через ${formatWait(hour.resetAt - now)}.`,
-      remainingToday: Math.max(0, limits.perDay - day.count),
-    };
+    return limitRejection("hour", hour.resetAt - now, Math.max(0, limits.perDay - day.count));
   }
 
   hour.count += 1;
