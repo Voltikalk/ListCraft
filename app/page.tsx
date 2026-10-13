@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ExampleTabs } from "@/components/example-tabs";
 import CRTWarp from "@/components/reactbits/CRTWarp";
 import GradientText from "@/components/reactbits/GradientText";
+import { LogoMarquee } from "@/components/logo-marquee";
+import PixelCard from "@/components/reactbits/PixelCard";
 import ShinyText from "@/components/reactbits/ShinyText";
 import { card, GlowCard, MailLink, primaryButton, secondaryButton, SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { DEMO_LISTINGS, EXAMPLE_INPUT } from "@/lib/demo-listing";
@@ -84,30 +86,6 @@ const onOliveSecondary = "inline-flex items-center justify-center gap-2 rounded-
 
 const SECTION_TOTAL = 7;
 
-const TICKER = ["Авито", "Ozon", "Wildberries", "eBay", "Etsy", "Amazon", "заголовок", "описание", "характеристики", "ключевые слова"];
-
-/** Декоративная бегущая строка. Все слова уже есть на странице текстом, поэтому для экранных дикторов она скрыта. */
-function Ticker() {
-  const copy = (key: string) => (
-    <ul key={key} className="flex shrink-0 items-center">
-      {[...TICKER, ...TICKER].map((word, i) => (
-        <li key={i} className="flex items-center gap-8 pr-8 whitespace-nowrap">
-          {word}
-          <span className="text-ochre-500">✳</span>
-        </li>
-      ))}
-    </ul>
-  );
-  return (
-    <div aria-hidden className="marquee overflow-hidden bg-olive-800 py-5 text-cream-100">
-      <div className="marquee-track font-display flex w-max text-xl font-bold tracking-[-0.02em] lowercase sm:text-2xl">
-        {copy("a")}
-        {copy("b")}
-      </div>
-    </div>
-  );
-}
-
 function exampleInputRows() {
   const condition = CONDITION_OPTIONS.find((o) => o.value === EXAMPLE_INPUT.condition)?.label ?? "";
   return [
@@ -153,9 +131,9 @@ function SectionTitle({
   );
 }
 
-function CheckIcon() {
+function CheckIcon({ className = "bg-olive-600 text-cream-100" }: { className?: string }) {
   return (
-    <span aria-hidden className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-olive-600 text-cream-100">
+    <span aria-hidden className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${className}`}>
       <svg viewBox="0 0 20 20" className="h-3 w-3" fill="currentColor">
         <path
           fillRule="evenodd"
@@ -377,7 +355,16 @@ export default function Home() {
           </div>
         </section>
 
-        <Ticker />
+        {/* Площадки */}
+        <section aria-label="Площадки, под которые пишутся объявления" className="border-y border-olive-900/10 bg-cream-50/70 py-6">
+          <p className="mx-auto mb-4 max-w-6xl px-4 text-center text-[11px] font-semibold tracking-[0.25em] text-olive-600 uppercase sm:px-6">
+            Объявления под правила площадок
+          </p>
+          <LogoMarquee />
+          <p className="mx-auto mt-4 max-w-6xl px-4 text-center text-[11px] text-olive-500 sm:px-6">
+            Названия и логотипы — товарные знаки их владельцев. ListCraft не связан с этими площадками и не публикует объявления за вас.
+          </p>
+        </section>
 
         {/* Два рынка */}
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
@@ -517,40 +504,78 @@ export default function Home() {
             title="Сколько стоит"
             lead="Сервис в бета-версии. Сейчас доступен только бесплатный пробный режим."
           />
-          <div className="reveal mt-10 grid gap-4 md:grid-cols-2">
-            <GlowCard className="flex flex-col p-7 ring-2 ring-olive-600 sm:p-8">
-              <p className="text-sm font-semibold text-olive-900">Пробный доступ</p>
-              <p className="font-display mt-3 text-4xl font-bold tracking-[-0.04em] text-olive-700 lowercase lg:text-5xl">Бесплатно</p>
-              <ul className="mt-6 flex-1 space-y-3 text-sm text-olive-800">
+          <div className="reveal mt-10 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
+            {/* Бесплатный режим — основной и единственный работающий вариант. */}
+            <PixelCard
+              theme="dark"
+              colors={["#fefae0", "#d3d9ae", "#b5c07e"]}
+              glowColor="#b5c07e"
+              gap={7}
+              speed={30}
+              opacity={0.5}
+              fade={0.75}
+              introDelay={250}
+              className="flex flex-col bg-olive-700 p-7 text-cream-100 shadow-panel sm:p-9"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-cream-200">Пробный доступ</p>
+                <span className="inline-flex items-center gap-2 rounded-full bg-cream-100/10 px-3 py-1 text-xs font-medium text-cream-100 ring-1 ring-cream-100/25">
+                  <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-olive-300" />
+                  Работает сейчас
+                </span>
+              </div>
+              <p className="font-display mt-5 text-4xl font-bold tracking-[-0.04em] text-cream-50 lowercase sm:text-5xl lg:text-6xl">Бесплатно</p>
+              <div aria-hidden className="my-7 h-px bg-cream-100/15" />
+              <ul className="flex-1 space-y-3.5 text-sm text-cream-100/90 sm:text-base">
                 {[freeQuota, "Без регистрации и без банковской карты", "Оба рынка, фото, редактирование и копирование"].map(
                   (item) => (
                     <li key={item} className="flex gap-3">
-                      <CheckIcon />
+                      <CheckIcon className="bg-cream-100 text-olive-700" />
                       {item}
                     </li>
                   ),
                 )}
               </ul>
-              <Link href="/create" className={`${primaryButton} mt-8`}>
+              <Link
+                href="/create"
+                className="group mt-9 inline-flex items-center justify-center gap-2 rounded-full bg-cream-100 px-6 py-3 text-base font-semibold text-olive-800 transition hover:bg-cream-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-cream-100 focus-visible:ring-offset-2 focus-visible:ring-offset-olive-700"
+              >
                 Попробовать бесплатно
+                <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">
+                  →
+                </span>
               </Link>
-            </GlowCard>
+            </PixelCard>
 
-            <div className="flex flex-col rounded-3xl border border-dashed border-olive-900/20 bg-cream-50/70 p-7 sm:p-8">
-              <div className="flex flex-wrap items-center gap-2">
+            {/* Платный пакет — только проверка спроса, оплаты нет. */}
+            <PixelCard
+              theme="light"
+              colors={["#bc6c25", "#d9a46b", "#95a256"]}
+              glowColor="#bc6c25"
+              gap={8}
+              speed={20}
+              opacity={0.35}
+              fade={0.85}
+              intro={false}
+              className="flex flex-col border border-dashed border-olive-900/20 bg-cream-50/70 p-7 sm:p-9"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-olive-900">Пакет {PAID_PACK.generations} объявлений</p>
-                <span className="rounded-full border border-ochre-500/40 bg-ochre-100 px-2.5 py-0.5 text-xs font-medium text-ochre-800">
+                <span className="rounded-full border border-ochre-500/40 bg-ochre-100 px-3 py-1 text-xs font-medium text-ochre-800">
                   Экспериментальная цена
                 </span>
               </div>
-              <p className="font-display mt-3 text-4xl font-bold tracking-[-0.04em] text-olive-800 lg:text-5xl">{PAID_PACK.price}</p>
-              <p className="mt-1 text-sm text-olive-600">Разовая покупка, не подписка</p>
-              <p className="mt-5 rounded-2xl border border-olive-900/10 bg-cream-50/70 p-4 text-sm leading-relaxed text-olive-800">
-                <strong className="font-semibold text-olive-950">Оплата пока не подключена.</strong> Купить пакет сейчас нельзя,
-                и мы ничего не списываем. Мы проверяем, нужен ли он продавцам; цена может измениться.
-                {CONTACT_EMAIL && " Если пакет вам интересен — оставьте заявку, и мы напишем, если подключим оплату."}
-              </p>
-              <div className="mt-6 flex-1 content-end">
+              <p className="font-display mt-5 text-4xl font-bold tracking-[-0.04em] text-olive-800 sm:text-5xl lg:text-6xl">{PAID_PACK.price}</p>
+              <p className="mt-2 text-sm text-olive-600">Разовая покупка, не подписка</p>
+              <div className="mt-7 flex gap-3 rounded-2xl border border-ochre-500/25 bg-ochre-100/50 p-4 text-sm leading-relaxed text-olive-800">
+                <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-ochre-500" />
+                <p>
+                  <strong className="font-semibold text-olive-950">Оплата пока не подключена.</strong> Купить пакет сейчас нельзя,
+                  и мы ничего не списываем. Мы проверяем, нужен ли он продавцам; цена может измениться.
+                  {CONTACT_EMAIL && " Если пакет вам интересен — оставьте заявку, и мы напишем, если подключим оплату."}
+                </p>
+              </div>
+              <div className="mt-7 flex-1 content-end">
                 {CONTACT_EMAIL ? (
                   <MailLink topic="paid" className={`${secondaryButton} w-full`}>
                     Хочу пакет — оставить заявку
@@ -560,7 +585,7 @@ export default function Home() {
                 )}
                 {CONTACT_EMAIL && <p className="mt-2 text-center text-xs text-olive-600">Откроется письмо на {CONTACT_EMAIL}</p>}
               </div>
-            </div>
+            </PixelCard>
           </div>
         </section>
 

@@ -32,7 +32,6 @@ type Props = {
   errors: Record<string, string>;
   disabled: boolean;
   onChange: (values: FormValues) => void;
-  photoSlot: ReactNode;
 };
 
 const inputClass =
@@ -145,7 +144,7 @@ function MarketPicker({
   );
 }
 
-export function ProductForm({ values, errors, disabled, onChange, photoSlot }: Props) {
+function fieldHelpers({ values, errors, disabled, onChange }: Props) {
   const set = (name: keyof FormValues, value: string) => onChange({ ...values, [name]: value });
 
   const text = (name: TextFieldName, label: string, placeholder: string, hint?: string, required = false) => (
@@ -173,15 +172,16 @@ export function ProductForm({ values, errors, disabled, onChange, photoSlot }: P
     </FieldShell>
   );
 
+  return { set, text };
+}
+
+/** Шаг 1: что за товар — название и описание своими словами. */
+export function ProductFields(props: Props) {
+  const { values, errors, disabled } = props;
+  const { set, text } = fieldHelpers(props);
+
   return (
     <div className="space-y-5">
-      <MarketPicker
-        value={values.market}
-        disabled={disabled}
-        error={errors.market}
-        onChange={(market) => onChange({ ...values, market })}
-      />
-
       {text(
         "productName",
         "Название или тип товара",
@@ -190,7 +190,43 @@ export function ProductForm({ values, errors, disabled, onChange, photoSlot }: P
         true,
       )}
 
-      {photoSlot}
+      <FieldShell
+        id="details"
+        label="Описание своими словами"
+        error={errors.details}
+        hint="Особенности, комплектация, дефекты — можно коротко и с ошибками"
+        counter={{ length: values.details.length, max: FIELD_LIMITS.details }}
+      >
+        <textarea
+          id="details"
+          name="details"
+          rows={4}
+          value={values.details}
+          onChange={(e) => set("details", e.target.value)}
+          placeholder="Например: носила один сезон, есть небольшая потёртость на ремне, внутри два кармана"
+          disabled={disabled}
+          maxLength={FIELD_LIMITS.details + 100}
+          aria-invalid={errors.details ? true : undefined}
+          className={`${inputClass} ${borderFor(errors.details)} resize-y`}
+        />
+      </FieldShell>
+    </div>
+  );
+}
+
+/** Шаг 2: для каких площадок и какие характеристики указать. */
+export function ListingSettings(props: Props) {
+  const { values, errors, disabled, onChange } = props;
+  const { set, text } = fieldHelpers(props);
+
+  return (
+    <div className="space-y-5">
+      <MarketPicker
+        value={values.market}
+        disabled={disabled}
+        error={errors.market}
+        onChange={(market) => onChange({ ...values, market })}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2">
         {text("brand", "Бренд", "Например: Zara", "Только если знаете точно")}
@@ -217,27 +253,6 @@ export function ProductForm({ values, errors, disabled, onChange, photoSlot }: P
       </div>
 
       {text("dimensions", "Размеры или параметры", "Например: 25 × 18 × 7 см, размер M, 128 ГБ", "Числа и единицы перенесём без изменений")}
-
-      <FieldShell
-        id="details"
-        label="Дополнительное описание"
-        error={errors.details}
-        hint="Особенности, комплектация, дефекты — своими словами"
-        counter={{ length: values.details.length, max: FIELD_LIMITS.details }}
-      >
-        <textarea
-          id="details"
-          name="details"
-          rows={4}
-          value={values.details}
-          onChange={(e) => set("details", e.target.value)}
-          placeholder="Например: носила один сезон, есть небольшая потёртость на ремне, внутри два кармана"
-          disabled={disabled}
-          maxLength={FIELD_LIMITS.details + 100}
-          aria-invalid={errors.details ? true : undefined}
-          className={`${inputClass} ${borderFor(errors.details)} resize-y`}
-        />
-      </FieldShell>
     </div>
   );
 }

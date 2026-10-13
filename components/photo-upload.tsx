@@ -86,17 +86,27 @@ export function PhotoUpload({ previewUrl, processing, disabled, error, onSelect,
           disabled={locked}
           onClick={() => inputRef.current?.click()}
           {...dropHandlers}
-          className={`flex w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-4 py-7 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${
+          className={`group flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-4 py-10 text-center transition disabled:cursor-not-allowed disabled:opacity-60 sm:py-12 ${
             dragOver ? "border-olive-600 bg-olive-600/10" : "border-olive-900/20 bg-cream-50/70 hover:border-olive-600/50 hover:bg-olive-600/[0.05]"
           }`}
         >
-          <svg aria-hidden viewBox="0 0 24 24" className="h-7 w-7 text-olive-600" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M3 16.5V18a2.5 2.5 0 0 0 2.5 2.5h13A2.5 2.5 0 0 0 21 18v-1.5M7.5 8 12 3.5 16.5 8M12 3.5V15" />
-          </svg>
-          <span className="text-sm font-medium text-olive-900">
-            {processing ? "Обрабатываем фото…" : "Нажмите или перетащите фото"}
+          <span
+            aria-hidden
+            className={`mb-1 flex h-12 w-12 items-center justify-center rounded-2xl transition ${
+              dragOver ? "bg-olive-600 text-cream-100" : "bg-olive-600/10 text-olive-600 group-hover:bg-olive-600 group-hover:text-cream-100"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z M4 15l4.5-4.5 4 4 2.5-2.5L20 17 M15.5 9.5h.01" />
+            </svg>
           </span>
-          <span className="text-xs text-olive-600">Поможет точнее описать цвет, вид и детали товара</span>
+          <span className="text-sm font-medium text-olive-900">
+            {processing ? "Обрабатываем фото…" : dragOver ? "Отпустите, чтобы добавить фото" : "Перетащите фото сюда или выберите файл"}
+          </span>
+          <span className="text-xs text-olive-600">
+            Поможет точнее описать цвет, вид и детали товара
+            <span className="hidden pointer-fine:inline"> · можно вставить из буфера (Ctrl+V)</span>
+          </span>
         </button>
       )}
 

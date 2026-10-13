@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { prepareImage, validateImageFile, type PreparedImage } from "@/lib/client/prepare-image";
 import { DEMO_LISTINGS, EXAMPLE_INPUT } from "@/lib/demo-listing";
 import {
@@ -16,7 +16,7 @@ import {
 import { CONTACT_EMAIL, PAID_PACK, TURNSTILE_SITE_KEY } from "@/lib/site";
 import { ListingResult } from "./listing-result";
 import { PhotoUpload } from "./photo-upload";
-import { EMPTY_FORM, ProductForm, type FormValues } from "./product-form";
+import { EMPTY_FORM, ListingSettings, ProductFields, type FormValues } from "./product-form";
 import { SetupNotice } from "./setup-notice";
 import { card, MailLink, primaryButton } from "./site-chrome";
 import { Turnstile } from "./turnstile";
@@ -67,6 +67,51 @@ function GenerationProgress({ market, withPhoto }: { market: Market; withPhoto: 
   );
 }
 
+/** Пронумерованный шаг рабочей области: 01 — товар, 02 — настройки, 03 — результат. */
+function Panel({
+  num,
+  title,
+  subtitle,
+  action,
+  className = "",
+  ref,
+  children,
+}: {
+  num: string;
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  className?: string;
+  ref?: Ref<HTMLElement>;
+  children: ReactNode;
+}) {
+  return (
+    <section ref={ref} aria-label={`Шаг ${num}. ${title}`} className={`${card} p-5 sm:p-7 ${className}`}>
+      <header className="mb-5 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="flex items-baseline gap-3">
+          <span aria-hidden className="font-display text-2xl italic leading-none text-olive-400 tabular-nums">
+            {num}
+          </span>
+          <div>
+            <h2 className="text-lg font-semibold text-olive-950">{title}</h2>
+            {subtitle && <p className="mt-0.5 text-xs font-medium text-olive-600">{subtitle}</p>}
+          </div>
+        </div>
+        {action}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/** Первый файл-картинка из буфера обмена (скриншот или «Копировать изображение»). */
+function imageFromClipboard(data: DataTransfer | null) {
+  for (const item of data?.items ?? []) {
+    if (item.kind === "file" && item.type.startsWith("image/")) return item.getAsFile();
+  }
+  return null;
+}
+
 /** На узком экране карточка результата под формой — показываем её, чтобы было видно ожидание и ошибки. */
 function revealOnNarrowScreen(element: HTMLElement | null) {
   if (element && !window.matchMedia("(min-width: 1024px)").matches) {
@@ -92,7 +137,7 @@ export function ListingGenerator() {
   const inFlight = useRef(false);
   const counter = useRef(0);
   const photoToken = useRef(0);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLElement>(null);
 
   // Фото, брошенное мимо зоны загрузки, браузер открыл бы вместо страницы — и форма бы потерялась.
   useEffect(() => {
@@ -156,6 +201,26 @@ export function ListingGenerator() {
       if (token === photoToken.current) setPhotoProcessing(false);
     }
   };
+
+  // Ctrl+V с картинкой в буфере — то же, что выбрать файл (формат и размер проверит handlePhoto).
+  const handlePhotoRef = useRef(handlePhoto);
+  useEffect(() => {
+    handlePhotoRef.current = handlePhoto;
+  });
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const file = imageFromClipboard(e.clipboardData);
+      if (!file) return;
+      // Текст, вставляемый в поле ввода, не перехватываем, даже если вместе с ним скопирована картинка.
+      const target = e.target as HTMLElement | null;
+      const editable = target?.closest("input, textarea, [contenteditable='true']");
+      if (editable && e.clipboardData?.types.includes("text/plain")) return;
+      e.preventDefault();
+      void handlePhotoRef.current(file);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
 
   const fillExample = () => {
     const { market, ...fields } = values;
@@ -297,108 +362,121 @@ export function ListingGenerator() {
   const shownMarket = MARKETS[shownKey];
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-      {/* Форма */}
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start">
+      {/* Шаги 01–02: ввод */}
       <form
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
           void submit();
         }}
-        className={`${card} p-5 sm:p-7`}
+        className="flex flex-col"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-olive-950">Данные о товаре</h2>
-          <button
-            type="button"
-            onClick={fillExample}
-            disabled={loading}
-            className="rounded-full border border-olive-600/30 bg-olive-600/10 px-3.5 py-1.5 text-sm font-medium text-olive-600 transition hover:bg-olive-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-olive-600 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Заполнить примером
-          </button>
-        </div>
-        <p className="mt-2 text-sm leading-relaxed text-olive-700">
-          Пишите по-русски, можно коротко и с ошибками. Указывайте то, что знаете точно: ИИ получает инструкцию не
-          додумывать недостающее.
-        </p>
-
-        <div className="mt-5">
-          <ProductForm
-            values={values}
-            errors={fieldErrors}
-            disabled={loading}
-            onChange={handleValues}
-            photoSlot={
-              <PhotoUpload
-                previewUrl={photo?.previewUrl ?? null}
-                processing={photoProcessing}
-                disabled={loading}
-                error={photoError}
-                onSelect={handlePhoto}
-                onRemove={removePhoto}
-              />
-            }
-          />
-        </div>
-
-        {confirmRepeat && (
-          <div role="status" className="mt-5 rounded-2xl border border-ochre-500/40 bg-ochre-100 p-3 text-sm text-ochre-800">
-            Данные не изменились с прошлого раза. Новый вариант засчитается как ещё одно объявление из бесплатного
-            лимита. Нажмите кнопку ещё раз, чтобы продолжить.
-          </div>
-        )}
-
-        {TURNSTILE_SITE_KEY && (
-          <Turnstile
-            siteKey={TURNSTILE_SITE_KEY}
-            resetKey={captchaReset}
-            onToken={(token) => {
-              setCaptchaToken(token);
-              if (token) setError((prev) => (prev?.code === "captcha_pending" ? null : prev));
-            }}
-          />
-        )}
-
-        <button
-          type="submit"
-          disabled={busy}
-          aria-busy={loading}
-          className={`${primaryButton} mt-6 w-full disabled:cursor-not-allowed disabled:opacity-60`}
+        <Panel
+          num="01"
+          title="Ваш товар"
+          action={
+            <button
+              type="button"
+              onClick={fillExample}
+              disabled={loading}
+              className="rounded-full border border-olive-600/30 bg-olive-600/10 px-3.5 py-1.5 text-sm font-medium text-olive-600 transition hover:bg-olive-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-olive-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Заполнить примером
+            </button>
+          }
         >
-          {loading ? (
-            <>
-              <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-cream-100/40 border-t-cream-100" />
-              Создаём объявление…
-            </>
-          ) : confirmRepeat ? (
-            "Да, создать новый вариант"
-          ) : unchanged ? (
-            "Создать другой вариант"
-          ) : (
-            `Создать объявление ${MARKETS[values.market].languageLabel}`
+          <p className="-mt-1 mb-5 text-sm leading-relaxed text-olive-700">
+            Пишите по-русски, можно коротко и с ошибками. Указывайте то, что знаете точно: ИИ получает инструкцию не
+            додумывать недостающее.
+          </p>
+          <div className="space-y-5">
+            <PhotoUpload
+              previewUrl={photo?.previewUrl ?? null}
+              processing={photoProcessing}
+              disabled={loading}
+              error={photoError}
+              onSelect={handlePhoto}
+              onRemove={removePhoto}
+            />
+            <ProductFields values={values} errors={fieldErrors} disabled={loading} onChange={handleValues} />
+          </div>
+        </Panel>
+
+        <span aria-hidden className="mx-auto h-6 w-px bg-olive-900/15" />
+
+        <Panel num="02" title="Настройки объявления">
+          <ListingSettings values={values} errors={fieldErrors} disabled={loading} onChange={handleValues} />
+
+          {confirmRepeat && (
+            <div role="status" className="mt-5 rounded-2xl border border-ochre-500/40 bg-ochre-100 p-3 text-sm text-ochre-800">
+              Данные не изменились с прошлого раза. Новый вариант засчитается как ещё одно объявление из бесплатного
+              лимита. Нажмите кнопку ещё раз, чтобы продолжить.
+            </div>
           )}
-        </button>
-        <p className="mt-2 text-center text-xs text-olive-600">
-          {remaining !== null
-            ? `Осталось бесплатных объявлений: ${remaining}`
-            : "Создание объявления может занять до полутора минут"}
-        </p>
+
+          {TURNSTILE_SITE_KEY && (
+            <Turnstile
+              siteKey={TURNSTILE_SITE_KEY}
+              resetKey={captchaReset}
+              onToken={(token) => {
+                setCaptchaToken(token);
+                if (token) setError((prev) => (prev?.code === "captcha_pending" ? null : prev));
+              }}
+            />
+          )}
+
+          <div className="mt-6 border-t border-olive-900/10 pt-5">
+            <p className="mb-3 flex flex-wrap gap-x-2 gap-y-1 text-xs text-olive-600">
+              <span className="font-medium text-olive-800">{MARKETS[values.market].label}</span>
+              <span aria-hidden>·</span>
+              <span>объявление {MARKETS[values.market].languageLabel}</span>
+              <span aria-hidden>·</span>
+              <span>{photo ? "с фото" : "без фото"}</span>
+            </p>
+            <button
+              type="submit"
+              disabled={busy}
+              aria-busy={loading}
+              className={`${primaryButton} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+            >
+              {loading ? (
+                <>
+                  <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-cream-100/40 border-t-cream-100" />
+                  Создаём объявление…
+                </>
+              ) : confirmRepeat ? (
+                "Да, создать новый вариант"
+              ) : unchanged ? (
+                "Создать другой вариант"
+              ) : (
+                `Создать объявление ${MARKETS[values.market].languageLabel}`
+              )}
+            </button>
+            <p className="mt-2 text-center text-xs text-olive-600">
+              {remaining !== null
+                ? `Осталось бесплатных объявлений: ${remaining}`
+                : "Создание объявления может занять до полутора минут"}
+            </p>
+          </div>
+        </Panel>
       </form>
 
-      {/* Результат */}
-      <div ref={resultRef} className={`${card} scroll-mt-24 p-5 sm:p-7`}>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h2 className="text-lg font-semibold text-olive-950">Объявление {shownMarket.languageLabel}</h2>
-          <span className="text-xs font-medium text-olive-600">{shownMarket.platforms}</span>
-        </div>
-
+      {/* Шаг 03: результат */}
+      <Panel
+        ref={resultRef}
+        num="03"
+        title="Результат"
+        subtitle={`Объявление ${shownMarket.languageLabel} · ${shownMarket.platforms}`}
+        // Пустая панель держится рядом с формой; длинный результат прокручивается как обычно.
+        className={`scroll-mt-24 ${result && !loading ? "" : "lg:sticky lg:top-24"}`}
+      >
         {/* Короткие сообщения для экранного диктора; ошибки озвучиваются через role="alert". */}
         <p role="status" className="sr-only">
           {loading ? "Создаём объявление…" : result && !error ? (result.isDemo ? "Показан демо-пример" : "Объявление готово") : ""}
         </p>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           {error &&
             (error.code === "missing_api_key" ? (
               <SetupNotice onShowDemo={showDemo} />
@@ -467,7 +545,7 @@ export function ListingGenerator() {
             )
           )}
         </div>
-      </div>
+      </Panel>
     </div>
   );
 }
