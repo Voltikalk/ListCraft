@@ -5,6 +5,8 @@ import GradientText from "@/components/reactbits/GradientText";
 import { LogoMarquee } from "@/components/logo-marquee";
 import PixelCard from "@/components/reactbits/PixelCard";
 import ShinyText from "@/components/reactbits/ShinyText";
+import TextType from "@/components/reactbits/TextType";
+import { StarCta } from "@/components/star-cta";
 import { card, GlowCard, MailLink, primaryButton, secondaryButton, SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { DEMO_LISTINGS, EXAMPLE_INPUT } from "@/lib/demo-listing";
 import { CONDITION_OPTIONS, MARKETS, type Market } from "@/lib/listing-schema";
@@ -80,8 +82,7 @@ const STEPS = [
 
 const GRADIENT = ["#fefae0", "#d3d9ae", "#b5c07e", "#fefae0"];
 
-/** Кнопки для оливковых блоков (первый экран и финальный призыв). */
-const onOlivePrimary = "group inline-flex items-center justify-center gap-2 rounded-full bg-cream-100 px-6 py-3 text-base font-semibold text-olive-800 transition hover:bg-cream-50 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-cream-100 focus-visible:ring-offset-2 focus-visible:ring-offset-olive-600";
+/** Второстепенная кнопка на оливковом фоне (первый экран). */
 const onOliveSecondary = "inline-flex items-center justify-center gap-2 rounded-full border border-cream-100/40 px-6 py-3 text-base font-semibold text-cream-100 transition hover:bg-cream-100/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cream-100 focus-visible:ring-offset-2 focus-visible:ring-offset-olive-600";
 
 const SECTION_TOTAL = 7;
@@ -228,8 +229,15 @@ function HeroPreview() {
           <div className="rounded-[1.25rem] border border-olive-900/10 bg-cream-50/70 p-5">
             <p className="text-xs font-medium uppercase tracking-wider text-olive-600">Вы пишете</p>
             <p className="mt-3 text-sm leading-relaxed text-olive-800">
-              {EXAMPLE_INPUT.productName}. {EXAMPLE_INPUT.details}
-              <span className="ml-0.5 inline-block h-4 w-px translate-y-0.5 bg-olive-600 motion-safe:animate-pulse" />
+              <TextType
+                text={`${EXAMPLE_INPUT.productName}. ${EXAMPLE_INPUT.details}`}
+                initialDelay={900}
+                variableSpeed={{ min: 25, max: 70 }}
+                pauseDuration={4000}
+                deletingSpeed={12}
+                startOnVisible
+                cursorClassName="text-olive-600"
+              />
             </p>
           </div>
           <div className="grid gap-2">
@@ -339,12 +347,12 @@ export default function Home() {
               eBay, Etsy и Amazon.
             </p>
             <div className="mt-9 flex flex-col gap-3 motion-safe:animate-rise [--rise-delay:270ms] sm:flex-row">
-              <Link href="/create" className={onOlivePrimary}>
+              <StarCta href="/create">
                 Создать объявление бесплатно
                 <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">
-                →
-              </span>
-              </Link>
+                  →
+                </span>
+              </StarCta>
               <a href="#example" className={onOliveSecondary}>
                 Посмотреть пример
               </a>
@@ -678,12 +686,12 @@ export default function Home() {
               Попробуйте на своём товаре
             </p>
             <p className="mt-5 text-cream-100/80">Без регистрации · бесплатно {freeQuota}</p>
-            <Link href="/create" className={`${onOlivePrimary} mt-8`}>
+            <StarCta href="/create" className="mt-8">
               Создать объявление
               <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">
                 →
               </span>
-            </Link>
+            </StarCta>
           </div>
         </section>
       </main>

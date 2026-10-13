@@ -2,7 +2,7 @@
 
 ## React Bits
 
-Файлы в `components/reactbits/` (Aurora, CRTWarp, PixelCard, SpotlightCard, GradientText, ShinyText) взяты из [React Bits](https://reactbits.dev) — https://github.com/DavidHDev/react-bits — и слегка адаптированы.
+Файлы в `components/reactbits/` (Aurora, CRTWarp, PixelCard, SpotlightCard, GradientText, ShinyText, TextType, StarBorder, ClickSpark) взяты из [React Bits](https://reactbits.dev) — https://github.com/DavidHDev/react-bits — и слегка адаптированы.
 
 Лицензия Commons Clause разрешает использовать их в составе приложения или сайта, в том числе коммерческого, но запрещает продавать или распространять сами компоненты отдельно. При продаже проекта целиком этот файл и заголовки в исходниках нужно сохранить.
 
