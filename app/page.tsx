@@ -123,7 +123,7 @@ function SectionTitle({
       </div>
       <h2
         id={id}
-        className="font-display mt-8 max-w-3xl scroll-mt-24 text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-olive-700 lowercase sm:text-5xl"
+        className="font-display mt-8 max-w-3xl scroll-mt-24 text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-olive-700 sm:text-5xl"
       >
         {title}
       </h2>
@@ -335,7 +335,7 @@ export default function Home() {
                 RU / EN
               </span>
             </div>
-            <h1 className="font-display mt-12 max-w-5xl motion-safe:animate-rise [--rise-delay:90ms] text-[2.4rem] leading-[1] font-bold tracking-[-0.04em] text-cream-100 lowercase sm:mt-16 sm:text-7xl lg:text-[5.25rem]">
+            <h1 className="font-display mt-12 max-w-5xl motion-safe:animate-rise [--rise-delay:90ms] text-[2.4rem] leading-[1] font-bold tracking-[-0.04em] text-cream-100 sm:mt-16 sm:text-7xl lg:text-[5.25rem]">
               Объявление для маркетплейса{" "}
               <GradientText colors={GRADIENT} animationSpeed={7} className="pb-[0.08em]">
                 из пары фраз о товаре
@@ -532,7 +532,7 @@ export default function Home() {
                   Работает сейчас
                 </span>
               </div>
-              <p className="font-display mt-5 text-4xl font-bold tracking-[-0.04em] text-cream-50 lowercase sm:text-5xl lg:text-6xl">Бесплатно</p>
+              <p className="font-display mt-5 text-4xl font-bold tracking-[-0.04em] text-cream-50 sm:text-5xl lg:text-6xl">Бесплатно</p>
               <div aria-hidden className="my-7 h-px bg-cream-100/15" />
               <ul className="flex-1 space-y-3.5 text-sm text-cream-100/90 sm:text-base">
                 {[freeQuota, "Без регистрации и без банковской карты", "Оба рынка, фото, редактирование и копирование"].map(
@@ -682,7 +682,7 @@ export default function Home() {
         <section className="px-4 pb-24 sm:px-6">
           <div className="reveal relative isolate mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-olive-600 px-6 py-16 text-cream-100 sm:px-12 sm:py-20">
             <div aria-hidden className="bg-grid bg-grid-light absolute inset-0 -z-10" />
-            <p className="font-display max-w-3xl text-3xl leading-[1.05] font-bold tracking-[-0.03em] lowercase sm:text-6xl">
+            <p className="font-display max-w-3xl text-3xl leading-[1.05] font-bold tracking-[-0.03em] sm:text-6xl">
               Попробуйте на своём товаре
             </p>
             <p className="mt-5 text-cream-100/80">Без регистрации · бесплатно {freeQuota}</p>

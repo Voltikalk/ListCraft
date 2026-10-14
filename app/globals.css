@@ -174,3 +174,75 @@ select option {
   background: #fffef6;
   color: #1f2412;
 }
+
+/* Стилизованный выпадающий список (customizable select, Chrome/Edge 135+).
+   В остальных браузерах остаётся обычный системный список. */
+@supports (appearance: base-select) {
+  .select-styled,
+  .select-styled::picker(select) {
+    appearance: base-select;
+  }
+  .select-styled {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+  .select-styled::picker-icon {
+    color: var(--color-olive-600);
+    transition: rotate 0.2s ease;
+  }
+  .select-styled:open::picker-icon {
+    rotate: 180deg;
+  }
+  .select-styled::picker(select) {
+    margin-block: 6px;
+    padding: 6px;
+    border: 1px solid rgb(47 53 32 / 0.12);
+    border-radius: 16px;
+    background: var(--color-cream-50);
+    box-shadow: 0 18px 40px -18px rgb(47 53 32 / 0.45);
+  }
+  .select-styled option {
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--color-olive-900);
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+  .select-styled option:hover,
+  .select-styled option:focus-visible {
+    background: var(--color-olive-100);
+    outline: none;
+  }
+  .select-styled option:checked {
+    background: var(--color-olive-600);
+    color: var(--color-cream-100);
+    font-weight: 600;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .select-styled::picker(select) {
+      opacity: 0;
+      translate: 0 -4px;
+      transition:
+        opacity 0.15s ease,
+        translate 0.15s ease,
+        overlay 0.15s allow-discrete,
+        display 0.15s allow-discrete;
+    }
+    .select-styled:open::picker(select) {
+      opacity: 1;
+      translate: 0 0;
+    }
+    @starting-style {
+      .select-styled:open::picker(select) {
+        opacity: 0;
+        translate: 0 -4px;
+      }
+    }
+  }
+}
