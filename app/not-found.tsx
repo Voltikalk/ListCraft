@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { primaryButton, SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { primaryButton, SiteFooter } from "@/components/site-chrome";
+import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = { title: "Страница не найдена" };
 

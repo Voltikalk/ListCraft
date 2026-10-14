@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ListingGenerator } from "@/components/listing-generator";
-import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { SiteFooter } from "@/components/site-chrome";
+import { SiteHeader } from "@/components/site-header";
 import { getLimits } from "@/lib/server/rate-limit";
 import { listingsCount } from "@/lib/site";
 
