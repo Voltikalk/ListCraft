@@ -35,11 +35,11 @@ export function getRedisConfig(): RedisConfig | null {
   return url && token ? { url: url.replace(/\/+$/, ""), token } : null;
 }
 
-class RedisError extends Error {
+export class RedisError extends Error {
   override name = "RedisError";
 }
 
-async function pipeline(config: RedisConfig, commands: Command[]): Promise<unknown[]> {
+export async function pipeline(config: RedisConfig, commands: Command[]): Promise<unknown[]> {
   const response = await fetch(`${config.url}/pipeline`, {
     method: "POST",
     headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" },
@@ -64,9 +64,9 @@ const UNAVAILABLE: LimitRejection = {
 };
 
 /** Для счётчиков в памяти: секрет живёт, пока жив процесс, — как и сами счётчики. */
-const PROCESS_SECRET = randomBytes(32);
+export const PROCESS_SECRET = randomBytes(32);
 
-function clientId(clientKey: string, secret: string | Buffer): string {
+export function clientId(clientKey: string, secret: string | Buffer): string {
   return createHmac("sha256", secret).update(clientKey).digest("base64url").slice(0, 24);
 }
 
@@ -176,7 +176,7 @@ export async function reserveGeneration(clientKey: string): Promise<LimitResult>
 }
 
 /** В журнал — только тип ошибки, без адреса хранилища и токена. */
-function logRedisError(step: string, error: unknown) {
+export function logRedisError(step: string, error: unknown) {
   console.error("[rate-limit] redis error", {
     step,
     type: error instanceof Error ? error.name : typeof error,
