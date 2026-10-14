@@ -238,7 +238,7 @@ export function ListingSettings(props: Props) {
             value={values.condition}
             onChange={(e) => set("condition", e.target.value)}
             disabled={disabled}
-            className={`${inputClass} ${borderFor(errors.condition)}`}
+            className={`select-styled ${inputClass} ${borderFor(errors.condition)}`}
           >
             {CONDITION_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

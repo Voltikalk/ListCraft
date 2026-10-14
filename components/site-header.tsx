@@ -1,19 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountLink, AccountLinkPlaceholder } from "@/components/auth/account-link";
-import { focusRing, Logo } from "@/components/site-chrome";
+import { focusRing, Logo, NAV } from "@/components/site-chrome";
 import { SITE_NAME } from "@/lib/site";
 import { isAuthConfigured } from "@/lib/supabase/config";
 
 // Шапка читает сессию на сервере, поэтому живёт отдельно от site-chrome:
 // стили и MailLink оттуда импортируют и клиентские компоненты.
-
-const NAV = [
-  { href: "/#how", label: "Как это работает" },
-  { href: "/#example", label: "Пример" },
-  { href: "/#pricing", label: "Цены" },
-  { href: "/#faq", label: "Вопросы" },
-];
 
 export function SiteHeader({ showCta = true }: { showCta?: boolean }) {
   return (

@@ -10,6 +10,14 @@ export const primaryButton = `inline-flex items-center justify-center gap-2 roun
 
 export const secondaryButton = `inline-flex items-center justify-center gap-2 rounded-full border border-olive-600/40 px-6 py-3 text-base font-semibold text-olive-800 transition hover:border-olive-600 hover:bg-olive-600/10 ${focusRing}`;
 
+/** Разделы лендинга — общие для шапки и подвала. */
+export const NAV = [
+  { href: "/#how", label: "Как это работает" },
+  { href: "/#example", label: "Пример" },
+  { href: "/#pricing", label: "Цены" },
+  { href: "/#faq", label: "Вопросы" },
+];
+
 /** Кремовая панель — основной блок интерфейса без эффектов. */
 export const card = "rounded-3xl border border-olive-900/10 bg-cream-50 shadow-panel";
 
@@ -66,36 +74,69 @@ export function MailLink({
   );
 }
 
+/** Фокус для ссылок на тёмном оливковом фоне подвала. */
+const footerFocus =
+  "rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-cream-100 focus-visible:ring-offset-2 focus-visible:ring-offset-olive-900";
+const footerLink = `text-cream-100/75 transition hover:text-cream-50 ${footerFocus}`;
+const footerHeading = "text-xs font-semibold tracking-[0.18em] text-cream-100/45 uppercase";
+
+const FOOTER_NAV = [...NAV, { href: "/#privacy", label: "Ваши данные" }];
+
 export function SiteFooter() {
   return (
-    <footer className="border-t border-olive-900/15">
-      <div className="mx-auto grid max-w-6xl gap-4 px-4 py-10 text-sm text-olive-700 sm:px-6 md:grid-cols-[1fr_auto]">
-        <div className="flex gap-3">
-          <Logo />
-          <div className="space-y-1">
-            <p className="font-medium text-olive-950">{SITE_NAME} — бета-версия</p>
-            <p className="text-xs text-olive-600">
-              Текст создаётся ИИ и может содержать неточности — проверяйте объявление перед публикацией.{" "}
-              <Link href="/#privacy" className="underline underline-offset-2 hover:text-olive-900">
-                Как мы обрабатываем данные
-              </Link>
+    <footer className="relative isolate overflow-hidden bg-olive-900 text-cream-100">
+      <div aria-hidden className="bg-grid bg-grid-light absolute inset-0 -z-10" />
+      <div className="mx-auto max-w-6xl px-4 pt-14 pb-8 sm:px-6">
+        <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr]">
+          <div>
+            <Link href="/" className={`inline-flex items-center gap-2.5 ${footerFocus}`}>
+              <Logo />
+              <span className="text-base font-semibold tracking-tight">{SITE_NAME}</span>
+              <span className="rounded-full border border-cream-100/25 px-2 py-0.5 text-xs font-medium text-cream-100/75">Бета</span>
+            </Link>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-cream-100/70">
+              Объявления для Авито, Ozon, Wildberries, eBay, Etsy и Amazon из пары фраз о товаре.
             </p>
           </div>
-        </div>
-        <div className="space-y-1 md:text-right">
-          {CONTACT_EMAIL ? (
-            <>
-              <p className="flex flex-wrap gap-x-4 gap-y-1 md:justify-end">
-                <MailLink topic="bug">Сообщить об ошибке</MailLink>
-                <MailLink topic="feedback">Оставить отзыв</MailLink>
-              </p>
-              <p className="text-xs text-olive-600">
-                Или напишите на <span className="select-all font-medium text-olive-800">{CONTACT_EMAIL}</span>
-              </p>
-            </>
-          ) : (
-            <p className="text-xs text-olive-600">Контакт для обратной связи пока не указан.</p>
+
+          <nav aria-label="Разделы сайта">
+            <p className={footerHeading}>Разделы</p>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              {FOOTER_NAV.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className={footerLink}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {CONTACT_EMAIL && (
+            <div>
+              <p className={footerHeading}>Обратная связь</p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                <li>
+                  <MailLink topic="bug" className={footerLink}>
+                    Сообщить об ошибке
+                  </MailLink>
+                </li>
+                <li>
+                  <MailLink topic="feedback" className={footerLink}>
+                    Оставить отзыв
+                  </MailLink>
+                </li>
+                <li className="text-cream-100/55">
+                  <span className="select-all">{CONTACT_EMAIL}</span>
+                </li>
+              </ul>
+            </div>
           )}
+        </div>
+
+        <div className="mt-12 flex flex-col gap-2 border-t border-cream-100/15 pt-6 text-xs text-cream-100/55 sm:flex-row sm:items-center sm:justify-between">
+          <p>Текст создаёт ИИ и может ошибаться — проверяйте объявление перед публикацией.</p>
+          <p className="shrink-0">{SITE_NAME} · бета-версия</p>
         </div>
       </div>
     </footer>

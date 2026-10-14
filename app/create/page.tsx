@@ -24,7 +24,7 @@ export default function CreatePage() {
           <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-olive-900/10 pb-5">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-olive-600">Генератор</p>
-              <h1 className="font-display mt-2 text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-olive-700 lowercase sm:text-4xl">
+              <h1 className="font-display mt-2 text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-olive-700 sm:text-4xl">
                 Создать объявление
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-olive-700">
