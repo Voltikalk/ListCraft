@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { prepareImage, validateImageFile, type PreparedImage } from "@/lib/client/prepare-image";
+import ClickSpark from "@/components/reactbits/ClickSpark";
 import { DEMO_LISTINGS, EXAMPLE_INPUT } from "@/lib/demo-listing";
 import {
   listingInputSchema,
@@ -434,25 +435,27 @@ export function ListingGenerator() {
               <span aria-hidden>·</span>
               <span>{photo ? "с фото" : "без фото"}</span>
             </p>
-            <button
-              type="submit"
-              disabled={busy}
-              aria-busy={loading}
-              className={`${primaryButton} w-full disabled:cursor-not-allowed disabled:opacity-60`}
-            >
-              {loading ? (
-                <>
-                  <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-cream-100/40 border-t-cream-100" />
-                  Создаём объявление…
-                </>
-              ) : confirmRepeat ? (
-                "Да, создать новый вариант"
-              ) : unchanged ? (
-                "Создать другой вариант"
-              ) : (
-                `Создать объявление ${MARKETS[values.market].languageLabel}`
-              )}
-            </button>
+            <ClickSpark disabled={busy} sparkColor={["#606c38", "#bc6c25", "#b5c07e"]} sparkCount={10} sparkRadius={26} className="rounded-full">
+              <button
+                type="submit"
+                disabled={busy}
+                aria-busy={loading}
+                className={`${primaryButton} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {loading ? (
+                  <>
+                    <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-cream-100/40 border-t-cream-100" />
+                    Создаём объявление…
+                  </>
+                ) : confirmRepeat ? (
+                  "Да, создать новый вариант"
+                ) : unchanged ? (
+                  "Создать другой вариант"
+                ) : (
+                  `Создать объявление ${MARKETS[values.market].languageLabel}`
+                )}
+              </button>
+            </ClickSpark>
             <p className="mt-2 text-center text-xs text-olive-600">
               {remaining !== null
                 ? `Осталось бесплатных объявлений: ${remaining}`
